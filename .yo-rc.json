@@ -1,0 +1,16 @@
+{
+  "generator-ndx": {
+    "filters": {
+      "settings": {
+        "appType": "cli",
+        "clientServer": "client",
+        "description": "a fun, lightweight frontend framework",
+        "client": true,
+        "appName": "yma",
+        "gitname": "ndxbxrme",
+        "gitemail": "lewis_the_cat@hotmail.com"
+      }
+    },
+    "appname": "github"
+  }
+}
