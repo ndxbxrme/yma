@@ -1,8 +1,8 @@
 {
   "name": "yma",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "a fun, lightweight frontend framework",
-  "main": "build/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "node build/test.js"
   },
