@@ -1,6 +1,6 @@
 (function() {
   require('./yma');
 
-  module.exports = this.yma;
+  module.exports = yma;
 
 }).call(this);

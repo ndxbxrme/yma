@@ -1,6 +1,6 @@
 {
   "name": "yma",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "a fun, lightweight frontend framework",
   "main": "dist/index.js",
   "scripts": {
@@ -24,5 +24,9 @@
     "grunt-webpack": "^3.1.1",
     "load-grunt-tasks": "^3.5.2",
     "webpack": "^4.8.1"
+  },
+  "dependencies": {
+    "acorn": "^5.5.3",
+    "grunt-file-append": "0.0.7"
   }
 }

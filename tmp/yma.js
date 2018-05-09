@@ -831,6 +831,6 @@
     return yma;
   };
 
-  this.yma = Yma();
+  window.yma = Yma();
 
 }).call(this);

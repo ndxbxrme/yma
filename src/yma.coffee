@@ -535,4 +535,4 @@ Yma = ->
       rid: rId
   window.setTimeout start
   yma
-@yma = Yma()
+window.yma = Yma() 

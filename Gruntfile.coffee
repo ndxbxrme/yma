@@ -24,13 +24,21 @@ module.exports = (grunt) ->
         ]
     clean:
       build: ['tmp', 'dist']
+    file_append:
+      build:
+        files: [
+          prepend: "var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');"
+          input: 'tmp/yma.js'
+          output: 'dist/yma.js'
+        ]
     concat:
       build:
         src: ['lib/acorn/acorn.min.js', 'lib/acorn/walk.min.js', 'tmp/yma.js']
-        dest: 'dist/yma.js'
+        dest: 'dist/yma-bower.js'
   grunt.registerTask 'build', [
     'clean:build'
     'coffee'
+    'file_append'
     'concat'
   ]
   grunt.registerTask 'default', [
