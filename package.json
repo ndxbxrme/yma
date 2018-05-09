@@ -1,13 +1,11 @@
 {
   "name": "yma",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "a fun, lightweight frontend framework",
   "main": "build/index.js",
   "scripts": {
     "test": "node build/test.js"
   },
-  "ndx": true,
-  "loadOrder": 5,
   "repository": {
     "type": "git",
     "url": "https://github.com/ndxbxrme/yma"
@@ -23,6 +21,8 @@
     "grunt-contrib-concat": "^1.0.1",
     "grunt-contrib-nodeunit": "^1.0.0",
     "grunt-contrib-watch": "^1.0.1",
-    "load-grunt-tasks": "^3.5.2"
+    "grunt-webpack": "^3.1.1",
+    "load-grunt-tasks": "^3.5.2",
+    "webpack": "^4.8.1"
   }
 }
