@@ -1,2 +1,2 @@
 require './yma'
-module.exports = yma
+module.exports = @.yma

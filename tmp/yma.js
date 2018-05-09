@@ -701,16 +701,18 @@
         window.history.pushState(state, '', state);
       }
       //tear down current route
-      if (viewScope) {
-        viewScope.$destroy();
+      if (nextRouteData && nextRouteData.data) {
+        if (viewScope) {
+          viewScope.$destroy();
+        }
+        nextRoute = nextRouteData.data;
+        viewScope = Scope(scope.root);
+        viewScope.$params = nextRouteData.params;
+        fetchController(nextRoute.controller, viewScope);
+        view.setAttribute('scope', viewScope.id);
+        view.innerHTML = (await renderTemplate((await fetchTemplate(nextRoute)), viewScope));
+        return renderVars(view, viewScope);
       }
-      nextRoute = nextRouteData.data;
-      viewScope = Scope(scope.root);
-      viewScope.$params = nextRouteData.params;
-      fetchController(nextRoute.controller, viewScope);
-      view.setAttribute('scope', viewScope.id);
-      view.innerHTML = (await renderTemplate((await fetchTemplate(nextRoute)), viewScope));
-      return renderVars(view, viewScope);
     };
     start = function() {
       var body, myscope;

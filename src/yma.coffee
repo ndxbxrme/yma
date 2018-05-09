@@ -441,14 +441,15 @@ Yma = ->
     if not pop
       window.history.pushState state, '', state
     #tear down current route
-    if viewScope then viewScope.$destroy()
-    nextRoute = nextRouteData.data
-    viewScope = Scope scope.root
-    viewScope.$params = nextRouteData.params
-    fetchController nextRoute.controller, viewScope
-    view.setAttribute 'scope', viewScope.id
-    view.innerHTML = await renderTemplate(await fetchTemplate(nextRoute), viewScope)
-    renderVars view, viewScope
+    if nextRouteData and nextRouteData.data
+      if viewScope then viewScope.$destroy()
+      nextRoute = nextRouteData.data
+      viewScope = Scope scope.root
+      viewScope.$params = nextRouteData.params
+      fetchController nextRoute.controller, viewScope
+      view.setAttribute 'scope', viewScope.id
+      view.innerHTML = await renderTemplate(await fetchTemplate(nextRoute), viewScope)
+      renderVars view, viewScope
   start = () ->
     body = document.querySelector 'body'
     myscope = scope.root
