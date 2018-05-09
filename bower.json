@@ -2,7 +2,7 @@
   "name": "yma",
   "description": "",
   "description2": "a fun, lightweight frontend framework",
-  "main": "build/index.js",
+  "main": "build/yma.js",
   "authors": [
     "ndxbxrme"
   ],

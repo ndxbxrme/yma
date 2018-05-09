@@ -1,32 +1,37 @@
 module.exports = (grunt) ->
   require('load-grunt-tasks') grunt
   grunt.initConfig
-    express:
-      web:
-        options:
-          script: 'build/test.js'
     watch:
       coffee:
         files: ['src/**/*.coffee']
         tasks: ['build']
     coffee:
       options:
-        sourceMap: true
+        sourceMap: false
       default:
-        files: [{
+        files: [
           expand: true
           cwd: 'src'
-          src: ['**/*.coffee']
-          dest: 'build'
+          src: ['yma.coffee']
+          dest: 'tmp'
           ext: '.js'
-        }]
+        ,
+          expand: true
+          cwd: 'src'
+          src: ['index.coffee']
+          dest: 'dist'
+          ext: '.js'
+        ]
     clean:
-      build: 'build'
-    nodeunit:
-      tests: ['build/test/**/*.js']
+      build: ['tmp', 'dist']
+    concat:
+      build:
+        src: ['lib/acorn/acorn.min.js', 'lib/acorn/walk.min.js', 'tmp/yma.js']
+        dest: 'dist/yma.js'
   grunt.registerTask 'build', [
     'clean:build'
     'coffee'
+    'concat'
   ]
   grunt.registerTask 'default', [
     'build'
