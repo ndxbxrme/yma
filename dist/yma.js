@@ -19,7 +19,7 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
     register = {};
     scope = {};
     Scope = function(myscope, _id) {
-      var newScope, ref;
+      var j, key, len, newScope, ref, ref1;
       newScope = {
         id: _id || `s${scopeId++}`,
         $root: scope.root,
@@ -37,8 +37,30 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
           //  vars = [vars]
           return setIndexVar(this, null, null, null, '', vars, refreshFn);
         },
-        $update: function(arg) {
-          var frag, fragKey, fragsToUpdate, indexScope, indexVar, j, k, key, len, len1, myhash, myvar, ref, refreshFn, repeater, repeaterKey, repeatersToUpdate;
+        $update: function(arg, ignoreFamily) {
+          var fragsToUpdate, indexScope, indexVar, j, key, len, myhash, myvar, processAncestors, processDescendants, pushUpdateVars, repeater, repeatersToUpdate;
+          pushUpdateVars = function(updateVar, updateScope) {
+            var frag, fragKey, j, len, ref, refreshFn, repeater, repeaterKey, results;
+            for (fragKey in updateVar.frags) {
+              frag = updateScope.frags[fragKey];
+              if (fragsToUpdate.indexOf(frag) === -1) {
+                fragsToUpdate.push(frag);
+              }
+            }
+            for (repeaterKey in updateVar.repeaters) {
+              repeater = updateScope.repeaters[repeaterKey];
+              if (repeatersToUpdate.indexOf(repeater) === -1) {
+                repeatersToUpdate.push(repeater);
+              }
+            }
+            ref = updateVar.refreshFns;
+            results = [];
+            for (j = 0, len = ref.length; j < len; j++) {
+              refreshFn = ref[j];
+              results.push(refreshFn());
+            }
+            return results;
+          };
           if (this.$updating) {
             return setTimeout(this.update(args));
           } else {
@@ -53,28 +75,64 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
                 myhash = hash(JSON.stringify(myvar));
                 if (myhash !== indexVar.value) {
                   indexVar.value = myhash;
-                  for (fragKey in indexVar.frags) {
-                    frag = indexScope.frags[fragKey];
-                    if (fragsToUpdate.indexOf(frag) === -1) {
-                      fragsToUpdate.push(frag);
+                  pushUpdateVars(indexVar, indexScope);
+                  processDescendants = (node) => {
+                    var child, icVar, icVarKey, indexChild, j, len, ref, results;
+                    ref = node.$children;
+                    results = [];
+                    for (j = 0, len = ref.length; j < len; j++) {
+                      child = ref[j];
+                      if (child.$isolate) {
+                        continue;
+                      }
+                      indexChild = index[child.id];
+                      if (indexChild) {
+                        for (icVarKey in indexChild.vars) {
+                          icVar = indexChild.vars[icVarKey];
+                          if (icVar.routeStr === indexVar.routeStr) {
+                            icVar.value = indexVar.value;
+                            child[icVar.route[0]] = this[icVar.route[0]];
+                            pushUpdateVars(icVar, indexChild);
+                          }
+                        }
+                      }
+                      results.push(processDescendants(child));
                     }
-                  }
-                  for (repeaterKey in indexVar.repeaters) {
-                    repeater = indexScope.repeaters[repeaterKey];
-                    if (repeatersToUpdate.indexOf(repeater) === -1) {
-                      repeatersToUpdate.push(repeater);
+                    return results;
+                  };
+                  processAncestors = (node) => {
+                    var indexParent, ipVar, ipVarKey, results;
+                    if (node.$isolate) {
+                      return;
                     }
-                  }
-                  ref = indexVar.refreshFns;
-                  for (j = 0, len = ref.length; j < len; j++) {
-                    refreshFn = ref[j];
-                    refreshFn();
+                    results = [];
+                    while (node) {
+                      if (node.$parent) {
+                        indexParent = index[node.$parent.id];
+                        if (indexParent) {
+                          for (ipVarKey in indexParent.vars) {
+                            ipVar = indexParent.vars[ipVarKey];
+                            if (ipVar.routeStr === indexVar.routeStr) {
+                              ipVar.value = indexVar.value;
+                              node.$parent[icVar.route[0]] = this[icVar.route[0]];
+                              pushUpdateVars(ipVar, indexParent);
+                            }
+                          }
+                        }
+                      }
+                      results.push(node = node.$parent);
+                    }
+                    return results;
+                  };
+                  if (!ignoreFamily) {
+                    processDescendants(this);
+                    processAncestors(this);
                   }
                 }
               }
             }
-            for (k = 0, len1 = repeatersToUpdate.length; k < len1; k++) {
-              repeater = repeatersToUpdate[k];
+            for (j = 0, len = repeatersToUpdate.length; j < len; j++) {
+              repeater = repeatersToUpdate[j];
               repeater.refreshFn();
             }
             if (fragsToUpdate.length) {
@@ -174,6 +232,15 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
       if (myscope != null) {
         if ((ref = myscope.$children) != null) {
           ref.push(newScope);
+        }
+      }
+      if (myscope) {
+        ref1 = Object.keys(myscope);
+        for (j = 0, len = ref1.length; j < len; j++) {
+          key = ref1[j];
+          if (!newScope.hasOwnProperty(key)) {
+            newScope[key] = myscope[key];
+          }
         }
       }
       return newScope;
@@ -896,7 +963,6 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
       return {
         controller: function() {
           var expression, nId, refresh, vars;
-          console.log('hide controller');
           expression = this.$node.getAttribute('hide');
           nId = `n${nodeId++}`;
           this.$node.setAttribute('nid', nId);

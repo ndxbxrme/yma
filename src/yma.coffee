@@ -29,7 +29,18 @@ Yma = ->
         #if typeof vars isnt 'array'
         #  vars = [vars]
         setIndexVar @, null, null, null, '', vars, refreshFn        
-      $update: (arg) ->
+      $update: (arg, ignoreFamily) ->
+        pushUpdateVars = (updateVar, updateScope) ->
+          for fragKey of updateVar.frags
+            frag = updateScope.frags[fragKey]
+            if fragsToUpdate.indexOf(frag) is -1
+              fragsToUpdate.push frag
+          for repeaterKey of updateVar.repeaters
+            repeater = updateScope.repeaters[repeaterKey]
+            if repeatersToUpdate.indexOf(repeater) is -1
+              repeatersToUpdate.push repeater
+          for refreshFn in updateVar.refreshFns
+            refreshFn()
         if @.$updating
           setTimeout @.update args
         else
@@ -44,16 +55,37 @@ Yma = ->
               myhash = hash JSON.stringify myvar
               if myhash isnt indexVar.value
                 indexVar.value = myhash
-                for fragKey of indexVar.frags
-                  frag = indexScope.frags[fragKey]
-                  if fragsToUpdate.indexOf(frag) is -1
-                    fragsToUpdate.push frag
-                for repeaterKey of indexVar.repeaters
-                  repeater = indexScope.repeaters[repeaterKey]
-                  if repeatersToUpdate.indexOf(repeater) is -1
-                    repeatersToUpdate.push repeater
-                for refreshFn in indexVar.refreshFns
-                  refreshFn()
+                pushUpdateVars indexVar, indexScope
+                processDescendants = (node) =>
+                  for child in node.$children
+                    if child.$isolate
+                      continue
+                    indexChild = index[child.id]
+                    if indexChild
+                      for icVarKey of indexChild.vars
+                        icVar = indexChild.vars[icVarKey]
+                        if icVar.routeStr is indexVar.routeStr
+                          icVar.value = indexVar.value
+                          child[icVar.route[0]] = @[icVar.route[0]]
+                          pushUpdateVars icVar, indexChild
+                    processDescendants child
+                processAncestors = (node) =>
+                  if node.$isolate
+                    return
+                  while node
+                    if node.$parent
+                      indexParent = index[node.$parent.id]
+                      if indexParent
+                        for ipVarKey of indexParent.vars
+                          ipVar = indexParent.vars[ipVarKey]
+                          if ipVar.routeStr is indexVar.routeStr
+                            ipVar.value = indexVar.value
+                            node.$parent[icVar.route[0]] = @[icVar.route[0]]
+                            pushUpdateVars ipVar, indexParent
+                    node = node.$parent
+                if not ignoreFamily
+                  processDescendants @
+                  processAncestors @
           for repeater in repeatersToUpdate
             repeater.refreshFn()
           if fragsToUpdate.length
@@ -102,6 +134,10 @@ Yma = ->
       $inherit: ->
     scope[newScope.id] = newScope
     myscope?.$children?.push newScope
+    if myscope
+      for key in Object.keys myscope
+        if not newScope.hasOwnProperty key
+          newScope[key] = myscope[key]
     newScope
   ComponentScope = (name) ->
     $name: name
@@ -581,7 +617,6 @@ Yma = ->
       vars = readVars expression
   yma.component 'hide', ->
     controller: ->
-      console.log 'hide controller'
       expression = @.$node.getAttribute 'hide'
       nId = "n#{nodeId++}"
       @.$node.setAttribute 'nid', nId
