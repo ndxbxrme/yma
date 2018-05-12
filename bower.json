@@ -2,7 +2,7 @@
   "name": "yma",
   "description": "",
   "description2": "a fun, lightweight frontend framework",
-  "main": "dist/yma.js",
+  "main": "dist/yma-bower.js",
   "authors": [
     "ndxbxrme"
   ],
