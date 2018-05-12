@@ -927,7 +927,6 @@
               }
             }
             html = (await makeHtml());
-            console.log(html.length);
             frag = document.createElement('div');
             parent = elems[0].parentNode;
             if (html && html.length) {
