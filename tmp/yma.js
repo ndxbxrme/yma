@@ -3,7 +3,7 @@
   var Yma;
 
   Yma = function() {
-    var ComponentScope, HTTP, Router, Scope, callCallbacks, changeRoute, collectTemplatesFromHTML, data, evalInContext, fetchController, fetchTemplate, fillTemplate, fragId, getScope, getScopeVar, hash, http, index, j, len, makeRouteRegex, nodeId, objTypes, readVars, register, renderComponent, renderTemplate, renderVars, repeaterId, router, scope, scopeId, setIndexVar, setRepeaterIndexVar, start, type, updateFrags, view, viewScope, yma;
+    var ComponentScope, HTTP, Router, Scope, callCallbacks, changeRoute, collectTemplatesFromHTML, data, evalInContext, fetchController, fetchTemplate, fillTemplate, fragId, getNodeId, getScope, getScopeVar, hash, http, index, j, len, makeRouteRegex, nodeId, objTypes, readVars, register, renderComponent, renderTemplate, renderVars, repeaterId, router, scope, scopeId, setIndexVar, setRepeaterIndexVar, start, type, updateFrags, view, viewScope, yma;
     yma = {};
     objTypes = ['config', 'service', 'controller', 'component', 'template', 'route'];
     view = null;
@@ -847,15 +847,22 @@
       // LISTENERS
       //--------------------------------------
       window.addEventListener('click', function(e) {
+        var node;
         myscope = getScope(e.target);
-        if (e.target.getAttribute('click')) {
-          evalInContext(e.target.getAttribute('click'), myscope);
+        node = e.target;
+        while (node && node.getAttribute) {
+          if (node.getAttribute('click')) {
+            evalInContext(node.getAttribute('click'), myscope);
+          }
+          if (node.tagName === 'A') {
+            e.preventDefault();
+            e.stopPropagation();
+            changeRoute(node.getAttribute('href'));
+            break;
+          }
+          node = node.parentNode;
         }
-        if (e.target.tagName === 'A') {
-          e.preventDefault();
-          e.stopPropagation();
-          return changeRoute(e.target.getAttribute('href'));
-        }
+        return null;
       });
       window.addEventListener('keyup', function(e) {
         myscope = getScope(e.target);
@@ -864,12 +871,23 @@
           myscope.$update();
         }
         if (e.target.getAttribute('keyup')) {
-          return console.log(evalInContext(e.target.getAttribute('keyup'), myscope));
+          evalInContext(e.target.getAttribute('keyup'), myscope);
         }
+        return null;
       });
       return window.onpopstate = function(event) {
         return changeRoute(event.state, true);
       };
+    };
+    getNodeId = function(node) {
+      var myId;
+      if (myId = node.getAttribute('nid')) {
+        return myId;
+      } else {
+        myId = `n${nodeId++}`;
+        node.setAttribute('nid');
+        return myId;
+      }
     };
     //--------------------------------------
     // BUILT IN COMPONENTS
@@ -916,26 +934,39 @@
             setRepeaterIndexVar(this, rId, this.id, template, vars, refresh);
             return renderVars(parent, getScope(parent));
           };
-          makeHtml = async() => {
-            var html, i, item, items, k, len1, myScope;
+          makeHtml = () => {
+            var addItem, html, i, item, itemKey, items, k, len1;
             temp.innerHTML = template;
             elemRoot = temp.querySelector('*');
             elemRoot.removeAttribute('repeat');
             items = evalInContext(expression, this);
             html = [];
+            addItem = async function(item, i) {
+              var myScope;
+              myScope = Scope(this);
+              myScope.$index = i;
+              myScope.$first = i === 0;
+              myScope.$last = i === items.length - 1;
+              myScope.$even = i % 2 === 1;
+              myScope.$odd = i % 2 === 0;
+              myScope[itemName] = item;
+              elemRoot.setAttribute('scope', myScope.id);
+              elemRoot.setAttribute('rid', rId);
+              return html.push((await renderTemplate(temp.innerHTML, myScope)));
+            };
             if (items) {
-              for (i = k = 0, len1 = items.length; k < len1; i = ++k) {
-                item = items[i];
-                myScope = Scope(this);
-                myScope.$index = i;
-                myScope.$first = i === 0;
-                myScope.$last = i === items.length - 1;
-                myScope.$even = i % 2 === 1;
-                myScope.$odd = i % 2 === 0;
-                myScope[itemName] = item;
-                elemRoot.setAttribute('scope', myScope.id);
-                elemRoot.setAttribute('rid', rId);
-                html.push((await renderTemplate(temp.innerHTML, myScope)));
+              if (typeof items === 'array') {
+                for (i = k = 0, len1 = items.length; k < len1; i = ++k) {
+                  item = items[i];
+                  addItem(item, i);
+                }
+              } else if (typeof items === 'object') {
+                for (itemKey in items) {
+                  i = items[itemKey];
+                  item = items[itemKey];
+                  item.$name = itemKey;
+                  addItem(item, i);
+                }
               }
             }
             return html;
@@ -953,32 +984,65 @@
     yma.component('if', function() {
       return {
         controller: function() {
-          var expression, vars;
+          var expression, lastResult, nId, refresh, template, vars;
           expression = this.$node.getAttribute('if');
-          return vars = readVars(expression);
+          template = this.$node.innerHTML;
+          nId = getNodeId(this.$node);
+          vars = readVars(expression);
+          lastResult = null;
+          refresh = async() => {
+            var child, childScope, k, len1, node, ref, result, results;
+            result = evalInContext(expression, this);
+            if (result !== lastResult) {
+              lastResult = result;
+              node = document.querySelector(`[nid=${nId}]`);
+              if (!result) {
+                ref = node.children;
+                results = [];
+                for (k = 0, len1 = ref.length; k < len1; k++) {
+                  child = ref[k];
+                  childScope = scope[child.getAttribute('scope')];
+                  if (childScope) {
+                    childScope.$destroy();
+                    results.push(child.remove());
+                  } else {
+                    results.push(void 0);
+                  }
+                }
+                return results;
+              } else {
+                return node.innerHTML = (await renderTemplate(template, this));
+              }
+            }
+          };
+          refresh();
+          return this.listen(vars, refresh);
         }
       };
     });
     yma.component('hide', function() {
       return {
         controller: function() {
-          var expression, nId, refresh, vars;
+          var expression, lastResult, nId, refresh, vars;
           expression = this.$node.getAttribute('hide');
-          nId = `n${nodeId++}`;
-          this.$node.setAttribute('nid', nId);
+          nId = getNodeId(this.$node);
           vars = readVars(expression);
+          lastResult = null;
           refresh = () => {
             var isHidden, node, result;
-            node = document.querySelector(`[nid=${nId}]`) || this.$node;
             result = evalInContext(expression, this);
-            isHidden = /\bymaHide\b/.test(node.className);
-            if (result) {
-              if (!isHidden) {
-                return node.className += ' ymaHide';
-              }
-            } else {
-              if (isHidden) {
-                return node.className = node.className.replace(/\s*ymaHide\s*/, ' ');
+            if (result !== lastResult) {
+              node = document.querySelector(`[nid=${nId}]`) || this.$node;
+              lastResult = result;
+              isHidden = /\bymaHide\b/.test(node.className);
+              if (result) {
+                if (!isHidden) {
+                  return node.className += ' ymaHide';
+                }
+              } else {
+                if (isHidden) {
+                  return node.className = node.className.replace(/\s*ymaHide\s*/, ' ');
+                }
               }
             }
           };
@@ -990,23 +1054,26 @@
     yma.component('show', function() {
       return {
         controller: function() {
-          var expression, nId, refresh, vars;
+          var expression, lastResult, nId, refresh, vars;
           expression = this.$node.getAttribute('show');
-          nId = `n${nodeId++}`;
-          this.$node.setAttribute('nid', nId);
+          nId = getNodeId(this.$node);
           vars = readVars(expression);
+          lastResult = null;
           refresh = () => {
             var isHidden, node, result;
-            node = document.querySelector(`[nid=${nId}]`) || this.$node;
             result = evalInContext(expression, this);
-            isHidden = /\bymaHide\b/.test(node.className);
-            if (!result) {
-              if (!isHidden) {
-                return node.className += ' ymaHide';
-              }
-            } else {
-              if (isHidden) {
-                return node.className = node.className.replace(/\s*ymaHide\s*/, ' ');
+            if (result !== lastResult) {
+              node = document.querySelector(`[nid=${nId}]`) || this.$node;
+              lastResult = result;
+              isHidden = /\bymaHide\b/.test(node.className);
+              if (!result) {
+                if (!isHidden) {
+                  return node.className += ' ymaHide';
+                }
+              } else {
+                if (isHidden) {
+                  return node.className = node.className.replace(/\s*ymaHide\s*/, ' ');
+                }
               }
             }
           };

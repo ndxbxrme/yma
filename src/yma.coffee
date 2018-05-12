@@ -538,21 +538,34 @@ Yma = ->
     #--------------------------------------
     window.addEventListener 'click', (e) ->
       myscope = getScope e.target
-      if e.target.getAttribute 'click'
-        evalInContext e.target.getAttribute('click'), myscope
-      if e.target.tagName is 'A'
-        e.preventDefault()
-        e.stopPropagation()
-        changeRoute e.target.getAttribute('href')
+      node = e.target
+      while node and node.getAttribute
+        if node.getAttribute 'click'
+          evalInContext node.getAttribute('click'), myscope
+        if node.tagName is 'A'
+          e.preventDefault()
+          e.stopPropagation()
+          changeRoute node.getAttribute('href')
+          break
+        node = node.parentNode
+      null
     window.addEventListener 'keyup', (e) ->
       myscope = getScope e.target
       if e.target.getAttribute 'model'
         evalInContext "#{e.target.getAttribute('model')} = '#{e.target.value}'", myscope
         myscope.$update()
       if e.target.getAttribute 'keyup'
-        console.log evalInContext e.target.getAttribute('keyup'), myscope
+        evalInContext e.target.getAttribute('keyup'), myscope
+      null
     window.onpopstate = (event) ->
       changeRoute event.state, true
+  getNodeId = (node) ->
+    if myId = node.getAttribute 'nid'
+      return myId
+    else
+      myId = "n#{nodeId++}"
+      node.setAttribute 'nid'
+      return myId
   #--------------------------------------
   # BUILT IN COMPONENTS
   #--------------------------------------
@@ -593,18 +606,26 @@ Yma = ->
         elemRoot.removeAttribute 'repeat'
         items = evalInContext expression, @
         html = []
+        addItem = (item, i) ->
+          myScope = Scope @
+          myScope.$index = i
+          myScope.$first = i is 0
+          myScope.$last = i is items.length - 1
+          myScope.$even = i % 2 is 1
+          myScope.$odd = i % 2 is 0
+          myScope[itemName] = item
+          elemRoot.setAttribute 'scope', myScope.id
+          elemRoot.setAttribute 'rid', rId
+          html.push await renderTemplate(temp.innerHTML, myScope)
         if items
-          for item, i in items
-            myScope = Scope @
-            myScope.$index = i
-            myScope.$first = i is 0
-            myScope.$last = i is items.length - 1
-            myScope.$even = i % 2 is 1
-            myScope.$odd = i % 2 is 0
-            myScope[itemName] = item
-            elemRoot.setAttribute 'scope', myScope.id
-            elemRoot.setAttribute 'rid', rId
-            html.push await renderTemplate(temp.innerHTML, myScope)
+          if typeof items is 'array'
+            for item, i in items
+              addItem(item, i)
+          else if typeof items is 'object'
+            for itemKey, i of items
+              item = items[itemKey]
+              item.$name = itemKey
+              addItem(item, i)
         html
       html = await makeHtml()
       setRepeaterIndexVar @, rId, @.id, template, vars, refresh
@@ -614,41 +635,63 @@ Yma = ->
   yma.component 'if', ->
     controller: ->
       expression = @.$node.getAttribute 'if'
+      template = @.$node.innerHTML
+      nId = getNodeId @.$node
       vars = readVars expression
+      lastResult = null
+      refresh = =>
+        result = evalInContext expression, @
+        if result isnt lastResult
+          lastResult = result
+          node = document.querySelector("[nid=#{nId}]")
+          if not result
+            for child in node.children
+              childScope = scope[child.getAttribute('scope')]
+              if childScope
+                childScope.$destroy()
+                child.remove()
+          else
+            node.innerHTML = await renderTemplate(template, @)
+      refresh()
+      @.listen vars, refresh
   yma.component 'hide', ->
     controller: ->
       expression = @.$node.getAttribute 'hide'
-      nId = "n#{nodeId++}"
-      @.$node.setAttribute 'nid', nId
+      nId = getNodeId @.$node
       vars = readVars expression
+      lastResult = null
       refresh = =>
-        node = document.querySelector("[nid=#{nId}]") or @.$node
         result = evalInContext expression, @
-        isHidden = /\bymaHide\b/.test node.className
-        if result
-          if not isHidden
-            node.className += ' ymaHide'
-        else
-          if isHidden
-            node.className = node.className.replace /\s*ymaHide\s*/, ' '
+        if result isnt lastResult
+          node = document.querySelector("[nid=#{nId}]") or @.$node
+          lastResult = result
+          isHidden = /\bymaHide\b/.test node.className
+          if result
+            if not isHidden
+              node.className += ' ymaHide'
+          else
+            if isHidden
+              node.className = node.className.replace /\s*ymaHide\s*/, ' '
       refresh()
       @.$listen vars, refresh
   yma.component 'show', ->
     controller: ->
       expression = @.$node.getAttribute 'show'
-      nId = "n#{nodeId++}"
-      @.$node.setAttribute 'nid', nId
+      nId = getNodeId @.$node
       vars = readVars expression
+      lastResult = null
       refresh = =>
-        node = document.querySelector("[nid=#{nId}]") or @.$node
         result = evalInContext expression, @
-        isHidden = /\bymaHide\b/.test node.className
-        if not result
-          if not isHidden
-            node.className += ' ymaHide'
-        else
-          if isHidden
-            node.className = node.className.replace /\s*ymaHide\s*/, ' '
+        if result isnt lastResult
+          node = document.querySelector("[nid=#{nId}]") or @.$node
+          lastResult = result
+          isHidden = /\bymaHide\b/.test node.className
+          if not result
+            if not isHidden
+              node.className += ' ymaHide'
+          else
+            if isHidden
+              node.className = node.className.replace /\s*ymaHide\s*/, ' '
       refresh()
       @.$listen vars, refresh
   window.setTimeout start
