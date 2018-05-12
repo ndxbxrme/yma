@@ -116,7 +116,8 @@ Yma = ->
                         delete testScope.vars[key]
           deleteIndexItems 'frags'
           deleteIndexItems 'repeaters'
-        @.$parent.$children?.splice(@.$parent.$children.indexOf(@), 1)
+        if @.$parent and @.$parent.$children
+          @.$parent.$children?.splice(@.$parent.$children.indexOf(@), 1)
         for service of index.services
           if index.services[service][@.id]
             delete index.services[service][@.id]
@@ -566,6 +567,9 @@ Yma = ->
       myId = "n#{nodeId++}"
       node.setAttribute 'nid'
       return myId
+  sleep = (time) ->
+    new Promise (resolve, reject) ->
+      window.setTimeout resolve, time
   #--------------------------------------
   # BUILT IN COMPONENTS
   #--------------------------------------
@@ -590,6 +594,7 @@ Yma = ->
           if i > 0
             elem.remove()
         html = await makeHtml()
+        console.log html.length
         frag = document.createElement 'div'
         parent = elems[0].parentNode
         if html and html.length
@@ -618,14 +623,16 @@ Yma = ->
           elemRoot.setAttribute 'rid', rId
           html.push await renderTemplate(temp.innerHTML, myScope)
         if items
-          if typeof items is 'array'
+          type = Object.prototype.toString.call items
+          if type is '[object Array]'
             for item, i in items
-              addItem(item, i)
-          else if typeof items is 'object'
-            for itemKey, i of items
-              item = items[itemKey]
+              await addItem(item, i)
+          else if type is '[object Object]'
+            i = 0
+            for itemKey, item of items
               item.$name = itemKey
-              addItem(item, i)
+              await addItem(item, i)
+              i++
         html
       html = await makeHtml()
       setRepeaterIndexVar @, rId, @.id, template, vars, refresh
@@ -652,6 +659,7 @@ Yma = ->
                 child.remove()
           else
             node.innerHTML = await renderTemplate(template, @)
+            renderVars node, getScope node
       refresh()
       @.listen vars, refresh
   yma.component 'hide', ->

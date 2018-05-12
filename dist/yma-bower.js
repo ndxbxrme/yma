@@ -5,7 +5,7 @@
   var Yma;
 
   Yma = function() {
-    var ComponentScope, HTTP, Router, Scope, callCallbacks, changeRoute, collectTemplatesFromHTML, data, evalInContext, fetchController, fetchTemplate, fillTemplate, fragId, getNodeId, getScope, getScopeVar, hash, http, index, j, len, makeRouteRegex, nodeId, objTypes, readVars, register, renderComponent, renderTemplate, renderVars, repeaterId, router, scope, scopeId, setIndexVar, setRepeaterIndexVar, start, type, updateFrags, view, viewScope, yma;
+    var ComponentScope, HTTP, Router, Scope, callCallbacks, changeRoute, collectTemplatesFromHTML, data, evalInContext, fetchController, fetchTemplate, fillTemplate, fragId, getNodeId, getScope, getScopeVar, hash, http, index, j, len, makeRouteRegex, nodeId, objTypes, readVars, register, renderComponent, renderTemplate, renderVars, repeaterId, router, scope, scopeId, setIndexVar, setRepeaterIndexVar, sleep, start, type, updateFrags, view, viewScope, yma;
     yma = {};
     objTypes = ['config', 'service', 'controller', 'component', 'template', 'route'];
     view = null;
@@ -197,8 +197,10 @@
             deleteIndexItems('frags');
             deleteIndexItems('repeaters');
           }
-          if ((ref = this.$parent.$children) != null) {
-            ref.splice(this.$parent.$children.indexOf(this), 1);
+          if (this.$parent && this.$parent.$children) {
+            if ((ref = this.$parent.$children) != null) {
+              ref.splice(this.$parent.$children.indexOf(this), 1);
+            }
           }
           for (service in index.services) {
             if (index.services[service][this.id]) {
@@ -891,6 +893,11 @@
         return myId;
       }
     };
+    sleep = function(time) {
+      return new Promise(function(resolve, reject) {
+        return window.setTimeout(resolve, time);
+      });
+    };
     //--------------------------------------
     // BUILT IN COMPONENTS
     //--------------------------------------
@@ -922,6 +929,7 @@
               }
             }
             html = (await makeHtml());
+            console.log(html.length);
             frag = document.createElement('div');
             parent = elems[0].parentNode;
             if (html && html.length) {
@@ -936,7 +944,7 @@
             setRepeaterIndexVar(this, rId, this.id, template, vars, refresh);
             return renderVars(parent, getScope(parent));
           };
-          makeHtml = () => {
+          makeHtml = async() => {
             var addItem, html, i, item, itemKey, items, k, len1;
             temp.innerHTML = template;
             elemRoot = temp.querySelector('*');
@@ -957,17 +965,19 @@
               return html.push((await renderTemplate(temp.innerHTML, myScope)));
             };
             if (items) {
-              if (typeof items === 'array') {
+              type = Object.prototype.toString.call(items);
+              if (type === '[object Array]') {
                 for (i = k = 0, len1 = items.length; k < len1; i = ++k) {
                   item = items[i];
-                  addItem(item, i);
+                  await addItem(item, i);
                 }
-              } else if (typeof items === 'object') {
+              } else if (type === '[object Object]') {
+                i = 0;
                 for (itemKey in items) {
-                  i = items[itemKey];
                   item = items[itemKey];
                   item.$name = itemKey;
-                  addItem(item, i);
+                  await addItem(item, i);
+                  i++;
                 }
               }
             }
@@ -1013,7 +1023,8 @@
                 }
                 return results;
               } else {
-                return node.innerHTML = (await renderTemplate(template, this));
+                node.innerHTML = (await renderTemplate(template, this));
+                return renderVars(node, getScope(node));
               }
             }
           };
