@@ -3,7 +3,7 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
   var Yma;
 
   Yma = function() {
-    var ComponentScope, HTTP, Router, Scope, callCallbacks, changeRoute, collectTemplatesFromHTML, data, evalInContext, fetchController, fetchTemplate, fillTemplate, fragId, getNodeId, getScope, getScopeVar, hash, http, index, j, len, makeRouteRegex, nodeId, objTypes, readVars, register, renderComponent, renderTemplate, renderVars, repeaterId, router, scope, scopeId, setIndexVar, setRepeaterIndexVar, sleep, start, type, updateFrags, view, viewScope, yma;
+    var ComponentScope, HTTP, Router, Scope, callCallbacks, changeRoute, cleanFrag, collectTemplatesFromHTML, componentId, components, data, evalInContext, fetchController, fetchTemplate, fillComponentNodes, fillTemplate, fragId, getScope, getScopeVar, hash, http, index, j, len, makeRouteRegex, nodeId, objTypes, readVars, register, renderComponent, renderTemplate, renderVars, repeaterId, router, scope, scopeId, setIndexVar, setRepeaterIndexVar, sleep, start, type, updateFrags, view, viewScope, yma;
     yma = {};
     objTypes = ['config', 'service', 'controller', 'component', 'template', 'route'];
     view = null;
@@ -11,6 +11,7 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
     scopeId = 0;
     fragId = 0;
     repeaterId = 0;
+    componentId = 0;
     nodeId = 0;
     index = {
       services: {}
@@ -18,6 +19,7 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
     data = {};
     register = {};
     scope = {};
+    components = {};
     Scope = function(myscope, _id) {
       var j, key, len, newScope, ref, ref1;
       newScope = {
@@ -62,7 +64,7 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
             return results;
           };
           if (this.$updating) {
-            return setTimeout(this.update(args));
+
           } else {
             this.$updating = true;
             repeatersToUpdate = [];
@@ -126,17 +128,18 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
                   };
                   if (!ignoreFamily) {
                     processDescendants(this);
-                    processAncestors(this);
                   }
                 }
               }
             }
+//processAncestors @
             for (j = 0, len = repeatersToUpdate.length; j < len; j++) {
               repeater = repeatersToUpdate[j];
               repeater.refreshFn();
             }
             if (fragsToUpdate.length) {
               updateFrags(fragsToUpdate);
+              fillComponentNodes();
             }
             return this.$updating = false;
           }
@@ -335,8 +338,6 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
     };
     http = HTTP();
     Scope({}, 'root');
-    scope.root.thing = 'buddy';
-    scope.root.testFn = function() {};
     //--------------------------------------
     // UTILITY
     //--------------------------------------
@@ -403,22 +404,52 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
       }
       return results;
     };
-    
+    cleanFrag = function(fid) {
+      var key, myvar, results, sid, testScope;
+      results = [];
+      for (sid in index) {
+        testScope = index[sid];
+        if (testScope.frags) {
+          delete testScope.frags[fid];
+          results.push((function() {
+            var results1;
+            results1 = [];
+            for (key in testScope.vars) {
+              myvar = testScope.vars[key];
+              delete myvar.frags[fid];
+              if (Object.keys(myvar.frags).length === 0) {
+                results1.push(delete testScope.vars[key]);
+              } else {
+                results1.push(void 0);
+              }
+            }
+            return results1;
+          })());
+        } else {
+          results.push(void 0);
+        }
+      }
+      return results;
+    };
     //--------------------------------------
     // FETCH 
     //--------------------------------------
     getScopeVar = function(myscope, name) {
       return evalInContext(name, myscope);
     };
-    getScope = function(elem) {
+    getScope = function(elem, nullOrRoot) {
       var myscope;
-      while (elem && elem.tagName !== 'HTML') {
+      while (elem && elem.tagName !== 'HTML' && elem.getAttribute) {
         if (myscope = elem.getAttribute('scope')) {
           return scope[myscope];
         }
         elem = elem.parentNode;
       }
-      return scope.root;
+      if (nullOrRoot) {
+        return null;
+      } else {
+        return scope.root;
+      }
     };
     collectTemplatesFromHTML = function() {
       var k, len1, results, script, scripts;
@@ -438,16 +469,16 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
       }
       return results;
     };
-    fetchController = async function(arg, myscope) {
+    fetchController = async function(arg, myscope, data) {
       var ctrl;
       if (arg) {
         type = typeof arg;
         if (type === 'function') {
-          return (await arg.call(myscope));
+          return (await arg.apply(myscope, [data]));
         } else if (type === 'string') {
           ctrl = data.controller[arg];
           if (ctrl) {
-            return (await ctrl.call(myscope));
+            return (await ctrl.call(myscope, [data]));
           }
         }
       }
@@ -609,13 +640,21 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
             results1 = [];
             for (fragKey in frags) {
               frag = frags[fragKey];
-              fragElem = document.querySelector(`[frag=${frag.id}]`);
-              myscope = getScope(fragElem);
-              if (typeof frag.index === 'string') {
-                results1.push(fragElem.setAttribute(frag.index, fillTemplate(frag.template, myscope, frag.id, frag.index)));
+              if (frag) {
+                fragElem = document.querySelector(`[frag=${frag.id}]`);
+                if (fragElem) {
+                  myscope = getScope(fragElem);
+                  if (typeof frag.index === 'string') {
+                    results1.push(fragElem.setAttribute(frag.index, fillTemplate(frag.template, myscope, frag.id, frag.index)));
+                  } else {
+                    fragNode = fragElem.childNodes[frag.index];
+                    results1.push(fragNode.nodeValue = fillTemplate(frag.template, myscope, frag.id, frag.index));
+                  }
+                } else {
+                  results1.push(void 0);
+                }
               } else {
-                fragNode = fragElem.childNodes[frag.index];
-                results1.push(fragNode.nodeValue = fillTemplate(frag.template, myscope, frag.id, frag.index));
+                results1.push(void 0);
               }
             }
             return results1;
@@ -625,7 +664,9 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
       }
     };
     renderComponent = async function(node, elem, myscope, append) {
-      var attribute, className, elemRoot, frag, i, k, len1, newScope, ref, result, temp, template;
+      var attribute, cid, className, elemData, elemRoot, frag, i, k, len1, newScope, ref, result, temp, template;
+      cid = `c${componentId++}`;
+      node.setAttribute('cid', cid);
       temp = document.createElement('template');
       frag = document.createElement('div');
       if (node.getAttribute('scope')) {
@@ -633,7 +674,6 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
       } else {
         newScope = elem.scope ? Scope(myscope) : myscope;
       }
-      newScope.$node = node;
       template = (await renderTemplate((await fetchTemplate(elem)), newScope));
       if (template) {
         frag.innerHTML = template;
@@ -642,8 +682,10 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
       }
       temp.content.appendChild(frag);
       elemRoot = frag.querySelector('*');
-      newScope.$elem = elemRoot;
-      result = (await fetchController(elem.controller, newScope));
+      elemData = {
+        node: node
+      };
+      result = (await fetchController(elem.controller, newScope, elemData));
       if (result && typeof result === 'object') {
         if (result.overwrite) {
           if (result.html.length) {
@@ -655,17 +697,20 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
             }
             node.remove();
           } else {
-            frag.innerHTML = `<div rid='${result.rid}' style='display:none'></div>`;
+            frag.innerHTML = `<div${(result.rid ? " rid='" + result.rid + "'" : "")} style='display:none'></div>`;
             elemRoot = frag.querySelector('*');
             node.replaceWith(elemRoot);
           }
           return;
+        } else {
+          if (typeof result.html === 'string') {
+            elemRoot.innerHTML = result.html;
+          }
         }
       }
       className = node.className;
       node[append ? 'appendAfter' : 'replaceWith'](elemRoot);
       elemRoot.className += className;
-      newScope.$node = elemRoot;
       ref = node.attributes;
       for (k = 0, len1 = ref.length; k < len1; k++) {
         attribute = ref[k];
@@ -678,6 +723,11 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
       }
       if (node.getAttribute('rid')) {
         elemRoot.setAttribute('rid', node.getAttribute('rid'));
+      }
+      //renderedNode.removeAttribute 'cid'
+      components[cid] = elemData;
+      if (typeof result === 'function') {
+        result();
       }
       return null;
     };
@@ -709,6 +759,17 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
     //--------------------------------------
     // VARIABLE RENDERING
     //--------------------------------------
+    fillComponentNodes = function() {
+      var cid, elemData, renderedNode;
+      for (cid in components) {
+        elemData = components[cid];
+        if (renderedNode = document.querySelector(`[cid=${cid}]`)) {
+          renderedNode.removeAttribute('cid');
+          elemData.node = renderedNode;
+        }
+      }
+      return components = {};
+    };
     renderVars = function(elem, myscope) {
       var attr, attrScope, child, childNode, fId, i, k, l, len1, len2, len3, n, ref, ref1, ref2, results;
       if (attrScope = elem.getAttribute('scope')) {
@@ -750,7 +811,6 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
     readVars = function(expression) {
       var ast, context, doWalk, myvar, vars;
       context = {};
-      //console.log expression
       ast = acorn.parse(expression);
       vars = [];
       myvar = null;
@@ -813,7 +873,7 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
 
     //--------------------------------------
     changeRoute = async function(state, pop) {
-      var nextRoute, nextRouteData;
+      var ctrl, nextRoute, nextRouteData;
       view = document.querySelector('view');
       nextRouteData = router.get(state);
       if (nextRouteData.url) {
@@ -830,11 +890,16 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
         nextRoute = nextRouteData.data;
         viewScope = Scope(scope.root);
         viewScope.$params = nextRouteData.params;
-        fetchController(nextRoute.controller, viewScope);
+        ctrl = (await fetchController(nextRoute.controller, viewScope));
         view.setAttribute('scope', viewScope.id);
         view.innerHTML = (await renderTemplate((await fetchTemplate(nextRoute)), viewScope));
-        return renderVars(view, viewScope);
+        fillComponentNodes();
+        renderVars(view, viewScope);
+        if (typeof ctrl === 'function') {
+          ctrl();
+        }
       }
+      return null;
     };
     start = function() {
       var body, myscope, styles;
@@ -866,10 +931,23 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
         }
         return null;
       });
+      window.addEventListener('submit', function(e) {
+        var node;
+        node = e.target;
+        while (node && node.tagName !== 'FORM') {
+          node = node.parentNode;
+        }
+        if (node && node.getAttribute && node.getAttribute('submit')) {
+          myscope = getScope(node);
+          evalInContext(node.getAttribute('submit'), myscope);
+          e.preventDefault();
+          return e.stopPropagation();
+        }
+      });
       window.addEventListener('keyup', function(e) {
         myscope = getScope(e.target);
         if (e.target.getAttribute('model')) {
-          evalInContext(`${e.target.getAttribute('model')} = '${e.target.value}'`, myscope);
+          evalInContext(`this.${e.target.getAttribute('model')} = '${e.target.value}'`, myscope);
           myscope.$update();
         }
         if (e.target.getAttribute('keyup')) {
@@ -881,34 +959,35 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
         return changeRoute(event.state, true);
       };
     };
-    getNodeId = function(node) {
-      var myId;
-      if (myId = node.getAttribute('nid')) {
-        return myId;
-      } else {
-        myId = `n${nodeId++}`;
-        node.setAttribute('nid');
-        return myId;
-      }
-    };
     sleep = function(time) {
       return new Promise(function(resolve, reject) {
         return window.setTimeout(resolve, time);
       });
     };
+    yma.goto = changeRoute;
+    yma.getIndex = function() {
+      return index;
+    };
+    yma.getAllScope = function() {
+      return scope;
+    };
+    yma.getData = function() {
+      return data;
+    };
+    yma.getScope = getScope;
     //--------------------------------------
     // BUILT IN COMPONENTS
     //--------------------------------------
     yma.component('repeat', function() {
       return {
-        controller: async function() {
+        controller: async function(args) {
           var elemRoot, expression, html, itemName, makeHtml, rId, refresh, repeatAttr, temp, template, vars;
           rId = `r${repeaterId++}`;
-          repeatAttr = this.$node.getAttribute('repeat');
+          repeatAttr = args.node.getAttribute('repeat');
           [expression, itemName] = repeatAttr.split(/\s+by\s+/);
           vars = readVars(expression);
           itemName = itemName || 'item';
-          template = this.$node.outerHTML;
+          template = args.node.outerHTML;
           temp = document.createElement('div');
           temp.innerHTML = template;
           elemRoot = temp.querySelector('*');
@@ -992,66 +1071,72 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
     });
     yma.component('if', function() {
       return {
-        controller: function() {
-          var expression, lastResult, nId, refresh, template, vars;
-          expression = this.$node.getAttribute('if');
-          template = this.$node.innerHTML;
-          nId = getNodeId(this.$node);
+        controller: async function(args) {
+          var expression, lastResult, refresh, template, vars;
+          expression = args.node.getAttribute('if');
+          template = args.node.innerHTML;
           vars = readVars(expression);
-          lastResult = null;
+          lastResult = void 0;
           refresh = async() => {
-            var child, childScope, k, len1, node, ref, result, results;
+            var child, childScope, fragNode, fragNodes, k, l, len1, len2, ref, result;
             result = evalInContext(expression, this);
             if (result !== lastResult) {
               lastResult = result;
-              node = document.querySelector(`[nid=${nId}]`);
               if (!result) {
-                ref = node.children;
-                results = [];
+                ref = args.node.children;
                 for (k = 0, len1 = ref.length; k < len1; k++) {
                   child = ref[k];
                   childScope = scope[child.getAttribute('scope')];
-                  if (childScope) {
+                  if (childScope && childScope !== this) {
                     childScope.$destroy();
-                    results.push(child.remove());
-                  } else {
-                    results.push(void 0);
                   }
                 }
-                return results;
+                fragNodes = args.node.querySelector('[frag]');
+                if (fragNodes) {
+                  if (fragNodes.getAttribute) {
+                    cleanFrag(fragNodes.getAttribute('frag'));
+                  } else {
+                    for (l = 0, len2 = fragNodes.length; l < len2; l++) {
+                      fragNode = fragNodes[l];
+                      cleanFrag(fragNode.getAttribute('frag'));
+                    }
+                  }
+                }
+                args.node.innerHTML = '';
               } else {
-                node.innerHTML = (await renderTemplate(template, this));
-                return renderVars(node, getScope(node));
+                args.node.innerHTML = (await renderTemplate(template, this));
+                renderVars(args.node, getScope(args.node, true) || this);
               }
             }
+            return args.node.innerHTML;
           };
-          refresh();
-          return this.listen(vars, refresh);
+          this.$listen(vars, refresh);
+          return {
+            html: (await refresh())
+          };
         }
       };
     });
     yma.component('hide', function() {
       return {
-        controller: function() {
-          var expression, lastResult, nId, refresh, vars;
-          expression = this.$node.getAttribute('hide');
-          nId = getNodeId(this.$node);
+        controller: function(args) {
+          var expression, lastResult, refresh, vars;
+          expression = args.node.getAttribute('hide');
           vars = readVars(expression);
           lastResult = null;
           refresh = () => {
-            var isHidden, node, result;
+            var isHidden, result;
             result = evalInContext(expression, this);
             if (result !== lastResult) {
-              node = document.querySelector(`[nid=${nId}]`) || this.$node;
               lastResult = result;
-              isHidden = /\bymaHide\b/.test(node.className);
+              isHidden = /\bymaHide\b/.test(args.node.className);
               if (result) {
                 if (!isHidden) {
-                  return node.className += ' ymaHide';
+                  return args.node.className += ' ymaHide';
                 }
               } else {
                 if (isHidden) {
-                  return node.className = node.className.replace(/\s*ymaHide\s*/, ' ');
+                  return args.node.className = args.node.className.replace(/\s*ymaHide\s*/, ' ');
                 }
               }
             }
@@ -1063,26 +1148,24 @@ var acorn = require('acorn');acorn.walk = require('acorn/dist/walk');(function()
     });
     yma.component('show', function() {
       return {
-        controller: function() {
-          var expression, lastResult, nId, refresh, vars;
-          expression = this.$node.getAttribute('show');
-          nId = getNodeId(this.$node);
+        controller: function(args) {
+          var expression, lastResult, refresh, vars;
+          expression = args.node.getAttribute('show');
           vars = readVars(expression);
           lastResult = null;
           refresh = () => {
-            var isHidden, node, result;
+            var isHidden, result;
             result = evalInContext(expression, this);
             if (result !== lastResult) {
-              node = document.querySelector(`[nid=${nId}]`) || this.$node;
               lastResult = result;
-              isHidden = /\bymaHide\b/.test(node.className);
+              isHidden = /\bymaHide\b/.test(args.node.className);
               if (!result) {
                 if (!isHidden) {
-                  return node.className += ' ymaHide';
+                  return args.node.className += ' ymaHide';
                 }
               } else {
                 if (isHidden) {
-                  return node.className = node.className.replace(/\s*ymaHide\s*/, ' ');
+                  return args.node.className = args.node.className.replace(/\s*ymaHide\s*/, ' ');
                 }
               }
             }

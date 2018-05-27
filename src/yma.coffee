@@ -7,12 +7,14 @@ Yma = ->
   scopeId = 0
   fragId = 0
   repeaterId = 0
+  componentId = 0
   nodeId = 0
   index = 
     services: {}
   data = {}
   register = {}
   scope = {}
+  components = {}
   
   Scope = (myscope, _id) ->
     newScope =
@@ -42,7 +44,7 @@ Yma = ->
           for refreshFn in updateVar.refreshFns
             refreshFn()
         if @.$updating
-          setTimeout @.update args
+          return
         else
           @.$updating = true
           repeatersToUpdate = []
@@ -85,11 +87,12 @@ Yma = ->
                     node = node.$parent
                 if not ignoreFamily
                   processDescendants @
-                  processAncestors @
+                  #processAncestors @
           for repeater in repeatersToUpdate
             repeater.refreshFn()
           if fragsToUpdate.length
             updateFrags fragsToUpdate
+            fillComponentNodes()
           @.$updating = false
       $destroy: ->
         callCallbacks @, 'destroy'
@@ -191,8 +194,6 @@ Yma = ->
       doRequest 'POST', url, data
   http = HTTP()
   Scope {}, 'root'
-  scope.root.thing = 'buddy'
-  scope.root.testFn = ->
   #--------------------------------------
   # UTILITY
   #--------------------------------------
@@ -233,32 +234,44 @@ Yma = ->
   callCallbacks = (obj, name) ->
     for cb in obj.$callbacks[name]
       cb?() 
+  cleanFrag = (fid) ->
+    for sid, testScope of index
+      if testScope.frags
+        delete testScope.frags[fid]
+        for key of testScope.vars
+          myvar = testScope.vars[key]
+          delete myvar.frags[fid]
+          if Object.keys(myvar.frags).length is 0
+            delete testScope.vars[key]
   #--------------------------------------
   # FETCH 
   #--------------------------------------
   getScopeVar = (myscope, name) ->
     evalInContext name, myscope
-  getScope = (elem) ->
-    while elem and elem.tagName isnt 'HTML'
+  getScope = (elem, nullOrRoot) ->
+    while elem and elem.tagName isnt 'HTML' and elem.getAttribute
       if myscope = elem.getAttribute 'scope'
         return scope[myscope]
       elem = elem.parentNode
-    scope.root
+    if nullOrRoot
+      return null
+    else
+      return scope.root
   collectTemplatesFromHTML = ->
     scripts = document.getElementsByTagName 'SCRIPT'
     for script in scripts
       if script.type is 'text/template'
         yma.template script.getAttribute('name'), ->
           html: script.innerText
-  fetchController = (arg, myscope) -> 
+  fetchController = (arg, myscope, data) -> 
     if arg
       type = typeof arg
       if type is 'function'
-        return await arg.call myscope
+        return await arg.apply myscope, [data]
       else if type is 'string'
         ctrl = data.controller[arg]
         if ctrl
-          return await ctrl.call myscope
+          return await ctrl.call myscope, [data]
     return null
   fetchTemplate = (arg) ->
     name = ''
@@ -373,23 +386,25 @@ Yma = ->
     if i
       while i--
         frags = fragsToUpdate[i]
-        for fragKey of frags
-          frag = frags[fragKey]
-          fragElem = document.querySelector "[frag=#{frag.id}]"
-          myscope = getScope fragElem
-          if typeof frag.index is 'string'
-            fragElem.setAttribute frag.index, fillTemplate frag.template, myscope, frag.id, frag.index
-          else
-            fragNode = fragElem.childNodes[frag.index]
-            fragNode.nodeValue = fillTemplate frag.template, myscope, frag.id, frag.index 
+        for fragKey, frag of frags
+          if frag
+            fragElem = document.querySelector "[frag=#{frag.id}]"
+            if fragElem
+              myscope = getScope fragElem
+              if typeof frag.index is 'string'
+                fragElem.setAttribute frag.index, fillTemplate frag.template, myscope, frag.id, frag.index
+              else
+                fragNode = fragElem.childNodes[frag.index]
+                fragNode.nodeValue = fillTemplate frag.template, myscope, frag.id, frag.index 
   renderComponent = (node, elem, myscope, append) ->
+    cid = "c#{componentId++}"
+    node.setAttribute 'cid', cid
     temp = document.createElement('template')
     frag = document.createElement 'div'
     if node.getAttribute 'scope'
       newScope = getScope node
     else
       newScope = if elem.scope then Scope(myscope) else myscope
-    newScope.$node = node
     template = await renderTemplate(await fetchTemplate(elem), newScope)
     if template
       frag.innerHTML = template
@@ -397,8 +412,9 @@ Yma = ->
       frag.innerHTML = node.outerHTML
     temp.content.appendChild frag
     elemRoot = frag.querySelector '*'
-    newScope.$elem = elemRoot
-    result = await fetchController elem.controller, newScope
+    elemData =
+      node: node
+    result = await fetchController elem.controller, newScope, elemData
     if result and typeof result is 'object'
       if result.overwrite
         if result.html.length
@@ -409,14 +425,16 @@ Yma = ->
             node.parentNode.insertBefore elemRoot, node
           node.remove()
         else
-          frag.innerHTML = "<div rid='#{result.rid}' style='display:none'></div>"
+          frag.innerHTML = "<div#{if result.rid then " rid='" + result.rid + "'" else ""} style='display:none'></div>"
           elemRoot = frag.querySelector '*'
           node.replaceWith elemRoot
-        return        
+        return
+      else
+        if typeof result.html is 'string'
+          elemRoot.innerHTML = result.html
     className = node.className
     node[if append then 'appendAfter' else 'replaceWith'] elemRoot
     elemRoot.className += className
-    newScope.$node = elemRoot
     
     for attribute in node.attributes
       if attribute.name isnt elem.name
@@ -425,6 +443,10 @@ Yma = ->
       elemRoot.setAttribute 'scope', newScope.id
     if node.getAttribute 'rid'
       elemRoot.setAttribute 'rid', node.getAttribute 'rid'
+    #renderedNode.removeAttribute 'cid'
+    components[cid] = elemData
+    if typeof result is 'function'
+      result()
     null
   renderTemplate = (template, myscope) ->
     await template
@@ -445,6 +467,12 @@ Yma = ->
   #--------------------------------------
   # VARIABLE RENDERING
   #--------------------------------------
+  fillComponentNodes = ->
+    for cid, elemData of components
+      if renderedNode = document.querySelector "[cid=#{cid}]"
+        renderedNode.removeAttribute 'cid'
+        elemData.node = renderedNode
+    components = {}
   renderVars = (elem, myscope) ->
     if attrScope = elem.getAttribute 'scope'
       myscope = scope[attrScope]
@@ -467,7 +495,6 @@ Yma = ->
       renderVars child, myscope
   readVars = (expression) ->
     context = {}
-    #console.log expression
     ast = acorn.parse expression
     vars = []
     myvar = null
@@ -521,10 +548,14 @@ Yma = ->
       nextRoute = nextRouteData.data
       viewScope = Scope scope.root
       viewScope.$params = nextRouteData.params
-      fetchController nextRoute.controller, viewScope
+      ctrl = await fetchController nextRoute.controller, viewScope
       view.setAttribute 'scope', viewScope.id
       view.innerHTML = await renderTemplate(await fetchTemplate(nextRoute), viewScope)
+      fillComponentNodes()
       renderVars view, viewScope
+      if typeof ctrl is 'function'
+        ctrl()
+    null
   start = () ->
     styles = document.createElement 'style'
     styles.innerText = '.ymaHide {display:none}'
@@ -550,37 +581,47 @@ Yma = ->
           break
         node = node.parentNode
       null
+    window.addEventListener 'submit', (e) ->
+      node = e.target
+      while node and node.tagName isnt 'FORM'
+        node = node.parentNode
+      if node and node.getAttribute and node.getAttribute 'submit'
+        myscope = getScope node
+        evalInContext node.getAttribute('submit'), myscope
+        e.preventDefault()
+        e.stopPropagation()
     window.addEventListener 'keyup', (e) ->
       myscope = getScope e.target
       if e.target.getAttribute 'model'
-        evalInContext "#{e.target.getAttribute('model')} = '#{e.target.value}'", myscope
+        evalInContext "this.#{e.target.getAttribute('model')} = '#{e.target.value}'", myscope
         myscope.$update()
       if e.target.getAttribute 'keyup'
         evalInContext e.target.getAttribute('keyup'), myscope
       null
     window.onpopstate = (event) ->
       changeRoute event.state, true
-  getNodeId = (node) ->
-    if myId = node.getAttribute 'nid'
-      return myId
-    else
-      myId = "n#{nodeId++}"
-      node.setAttribute 'nid'
-      return myId
   sleep = (time) ->
     new Promise (resolve, reject) ->
       window.setTimeout resolve, time
+  yma.goto = changeRoute
+  yma.getIndex = ->
+    index
+  yma.getAllScope = ->
+    scope
+  yma.getData = ->
+    data
+  yma.getScope = getScope
   #--------------------------------------
   # BUILT IN COMPONENTS
   #--------------------------------------
   yma.component 'repeat', ->
-    controller: ->
+    controller: (args) ->
       rId = "r#{repeaterId++}"
-      repeatAttr = @.$node.getAttribute 'repeat'
+      repeatAttr = args.node.getAttribute 'repeat'
       [expression, itemName] = repeatAttr.split /\s+by\s+/
       vars = readVars expression
       itemName = itemName or 'item'
-      template = @.$node.outerHTML
+      template = args.node.outerHTML
       temp = document.createElement 'div'
       temp.innerHTML = template
       elemRoot = temp.querySelector '*'
@@ -639,66 +680,68 @@ Yma = ->
       html: html
       rid: rId
   yma.component 'if', ->
-    controller: ->
-      expression = @.$node.getAttribute 'if'
-      template = @.$node.innerHTML
-      nId = getNodeId @.$node
+    controller: (args) ->
+      expression = args.node.getAttribute 'if'
+      template = args.node.innerHTML
       vars = readVars expression
-      lastResult = null
+      lastResult = undefined
       refresh = =>
         result = evalInContext expression, @
         if result isnt lastResult
           lastResult = result
-          node = document.querySelector("[nid=#{nId}]")
           if not result
-            for child in node.children
+            for child in args.node.children
               childScope = scope[child.getAttribute('scope')]
-              if childScope
+              if childScope and childScope isnt @
                 childScope.$destroy()
-                child.remove()
+            fragNodes = args.node.querySelector '[frag]'
+            if fragNodes
+              if fragNodes.getAttribute
+                cleanFrag fragNodes.getAttribute('frag')
+              else
+                for fragNode in fragNodes
+                  cleanFrag fragNode.getAttribute('frag')
+            args.node.innerHTML = ''
           else
-            node.innerHTML = await renderTemplate(template, @)
-            renderVars node, getScope node
-      refresh()
-      @.listen vars, refresh
+            args.node.innerHTML = await renderTemplate(template, @)
+            renderVars args.node, getScope(args.node, true) or @
+        args.node.innerHTML
+      @.$listen vars, refresh
+      html: await refresh()
   yma.component 'hide', ->
-    controller: ->
-      expression = @.$node.getAttribute 'hide'
-      nId = getNodeId @.$node
+    controller: (args) ->
+      expression = args.node.getAttribute 'hide'
       vars = readVars expression
       lastResult = null
       refresh = =>
         result = evalInContext expression, @
         if result isnt lastResult
-          node = document.querySelector("[nid=#{nId}]") or @.$node
           lastResult = result
-          isHidden = /\bymaHide\b/.test node.className
+          isHidden = /\bymaHide\b/.test args.node.className
           if result
             if not isHidden
-              node.className += ' ymaHide'
+              args.node.className += ' ymaHide'
           else
             if isHidden
-              node.className = node.className.replace /\s*ymaHide\s*/, ' '
+              args.node.className = args.node.className.replace /\s*ymaHide\s*/, ' '
       refresh()
       @.$listen vars, refresh
   yma.component 'show', ->
-    controller: ->
-      expression = @.$node.getAttribute 'show'
-      nId = getNodeId @.$node
+    controller: (args) ->
+      expression = args.node.getAttribute 'show'
       vars = readVars expression
       lastResult = null
       refresh = =>
         result = evalInContext expression, @
         if result isnt lastResult
-          node = document.querySelector("[nid=#{nId}]") or @.$node
           lastResult = result
-          isHidden = /\bymaHide\b/.test node.className
+          isHidden = /\bymaHide\b/.test args.node.className
           if not result
             if not isHidden
-              node.className += ' ymaHide'
+              args.node.className += ' ymaHide'
           else
             if isHidden
-              node.className = node.className.replace /\s*ymaHide\s*/, ' '
+              args.node.className = args.node.className.replace /\s*ymaHide\s*/, ' '
       refresh()
       @.$listen vars, refresh
   window.setTimeout start
