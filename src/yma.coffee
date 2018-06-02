@@ -16,11 +16,11 @@ Yma = ->
   scope = {}
   components = {}
   
-  Scope = (myscope, _id) ->
+  Scope = (parentScope, _id) ->
     newScope =
-      id: _id or "s#{scopeId++}" 
+      $id: _id or "s#{scopeId++}" 
       $root: scope.root
-      $parent: myscope
+      $parent: parentScope
       $children: []
       $callbacks:
         destroy: []
@@ -49,7 +49,7 @@ Yma = ->
           @.$updating = true
           repeatersToUpdate = []
           fragsToUpdate = []
-          indexScope = index[@.id]
+          indexScope = index[@.$id]
           if indexScope
             for key of indexScope.vars
               indexVar = indexScope.vars[key]
@@ -62,11 +62,11 @@ Yma = ->
                   for child in node.$children
                     if child.$isolate
                       continue
-                    indexChild = index[child.id]
+                    indexChild = index[child.$id]
                     if indexChild
                       for icVarKey of indexChild.vars
                         icVar = indexChild.vars[icVarKey]
-                        if icVar.routeStr is indexVar.routeStr
+                        if icVar.route[0] is indexVar.route[0]
                           icVar.value = indexVar.value
                           child[icVar.route[0]] = @[icVar.route[0]]
                           pushUpdateVars icVar, indexChild
@@ -76,7 +76,7 @@ Yma = ->
                     return
                   while node
                     if node.$parent
-                      indexParent = index[node.$parent.id]
+                      indexParent = index[node.$parent.$id]
                       if indexParent
                         for ipVarKey of indexParent.vars
                           ipVar = indexParent.vars[ipVarKey]
@@ -101,14 +101,14 @@ Yma = ->
           child = @.$children[0]
           child.$destroy()
         @.children = undefined 
-        delete scope[@.id]
+        delete scope[@.$id]
         #find the fragments to delete and 
-        indexScope = index[@.id]
+        indexScope = index[@.$id]
         if indexScope 
           deleteIndexItems = (itemKey) ->
             for item of indexScope[itemKey]
               for scopeKey of index
-                if indexScope.id isnt scopeKey
+                if indexScope.$id isnt scopeKey
                   testScope = index[scopeKey]
                   if testScope[itemKey]
                     delete testScope[itemKey][item]
@@ -117,16 +117,16 @@ Yma = ->
                       delete myvar[itemKey][item]
                       if Object.keys(myvar[itemKey]).length is 0
                         delete testScope.vars[key]
-          deleteIndexItems 'frags'
+          deleteIndexItems 'frags' 
           deleteIndexItems 'repeaters'
         if @.$parent and @.$parent.$children
           @.$parent.$children?.splice(@.$parent.$children.indexOf(@), 1)
         for service of index.services
-          if index.services[service][@.id]
-            delete index.services[service][@.id]
+          if index.services[service][@.$id]
+            delete index.services[service][@.$id]
           if Object.keys(index.services[service]).length is 0
             delete index.services[service]
-        delete index[@.id]
+        delete index[@.$id]
       $use: (args) ->
         if typeof args is 'string'
           args = [args]
@@ -134,14 +134,14 @@ Yma = ->
           if data.service[arg]
             @["_#{arg}"] = data.service[arg]
             index.services[arg] = index.services[arg] or {}
-            index.services[arg][@.id] = true
+            index.services[arg][@.$id] = true
       $inherit: ->
-    scope[newScope.id] = newScope
-    myscope?.$children?.push newScope
-    if myscope
-      for key in Object.keys myscope
+    scope[newScope.$id] = newScope
+    parentScope?.$children?.push newScope
+    if parentScope
+      for key in Object.keys parentScope
         if not newScope.hasOwnProperty key
-          newScope[key] = myscope[key]
+          newScope[key] = parentScope[key]
     newScope
   ComponentScope = (name) ->
     $name: name
@@ -209,15 +209,19 @@ Yma = ->
   for type in objTypes
     data[type] = {}
     ((type) ->
+      objCount = 0
       yma[type] = (name, fn) ->
         cScope = ComponentScope name
-        data[type][name] = fn.call cScope
-        if type is 'route'
-          if typeof name is 'array'
-            for route in name
-              makeRouteRegex name, route
-          else
-            makeRouteRegex name, name
+        if type is 'config'
+          data[type]["o#{objCount++}"] = name
+        else
+          data[type][name] = fn.call cScope
+          if type is 'route'
+            if typeof name is 'array'
+              for route in name
+                makeRouteRegex name, route
+            else
+              makeRouteRegex name, name
     )(type)
   evalInContext = (str, context) ->
     try
@@ -249,6 +253,8 @@ Yma = ->
   getScopeVar = (myscope, name) ->
     evalInContext name, myscope
   getScope = (elem, nullOrRoot) ->
+    if not elem
+      return scope
     while elem and elem.tagName isnt 'HTML' and elem.getAttribute
       if myscope = elem.getAttribute 'scope'
         return scope[myscope]
@@ -294,7 +300,7 @@ Yma = ->
   # INDEXING
   #--------------------------------------
   setIndexVar = (myscope, fragId, fragIndex, fragScopeId, template, vars, refreshFn) ->
-    indexScope = index[myscope.id] = index[myscope.id] or
+    indexScope = index[myscope.$id] = index[myscope.$id] or
       frags: {}
       vars: {}
       repeaters: {}
@@ -318,7 +324,8 @@ Yma = ->
         if newScope
           return setIndexVar newScope, fragId, fragIndex, fragScopeId, template, [newVar], refreshFn #check this
       if typeof myvars[myvar.name] is 'undefined'
-        myscope[myvar.name] = myscope[myvar.name] or null
+        if not /[\.\(\)]/.test myvar.name
+          myscope[myvar.name] = myscope[myvar.name] or null
         myvars[myvar.name] = 
           value: hash JSON.stringify evalInContext myvar.name, myscope
           route: myvar.route
@@ -341,7 +348,7 @@ Yma = ->
       null
     null
   setRepeaterIndexVar = (myscope, repeaterId, repeaterScopeId, template, vars, refreshFn) ->
-    indexScope = index[myscope.id] = index[myscope.id] or
+    indexScope = index[myscope.$id] = index[myscope.$id] or
       frags: {}
       vars: {}
       repeaters: {}
@@ -396,8 +403,13 @@ Yma = ->
               else
                 fragNode = fragElem.childNodes[frag.index]
                 fragNode.nodeValue = fillTemplate frag.template, myscope, frag.id, frag.index 
+                ###
+                if fragNode
+                else
+                  cleanFrag frag.id
+                ###
   renderComponent = (node, elem, myscope, append) ->
-    cid = "c#{componentId++}"
+    cid = node.getAttribute('cid') or "c#{componentId++}"
     node.setAttribute 'cid', cid
     temp = document.createElement('template')
     frag = document.createElement 'div'
@@ -440,11 +452,12 @@ Yma = ->
       if attribute.name isnt elem.name
         elemRoot.setAttribute attribute.name, attribute.value
     if elem.scope or node.getAttribute 'scope'
-      elemRoot.setAttribute 'scope', newScope.id
+      elemRoot.setAttribute 'scope', newScope.$id
     if node.getAttribute 'rid'
       elemRoot.setAttribute 'rid', node.getAttribute 'rid'
     #renderedNode.removeAttribute 'cid'
-    components[cid] = elemData
+    components[cid] = components[cid] or []
+    components[cid].push elemData
     if typeof result is 'function'
       result()
     null
@@ -468,10 +481,11 @@ Yma = ->
   # VARIABLE RENDERING
   #--------------------------------------
   fillComponentNodes = ->
-    for cid, elemData of components
+    for cid, elemDataArray of components
       if renderedNode = document.querySelector "[cid=#{cid}]"
-        renderedNode.removeAttribute 'cid'
-        elemData.node = renderedNode
+        #renderedNode.removeAttribute 'cid'
+        for elemData in elemDataArray
+          elemData.node = renderedNode
     components = {}
   renderVars = (elem, myscope) ->
     if attrScope = elem.getAttribute 'scope'
@@ -530,7 +544,7 @@ Yma = ->
     template.replace /\{\{(.+?)\}\}/g, (all, expression) ->
       vars = readVars expression
       if typeof fragId isnt 'undefined'
-        setIndexVar data, fragId, fragIndex, data.id, template, vars
+        setIndexVar data, fragId, fragIndex, data.$id, template, vars
       evalInContext(expression, data) or ''
   #--------------------------------------
   # 
@@ -549,13 +563,16 @@ Yma = ->
       viewScope = Scope scope.root
       viewScope.$params = nextRouteData.params
       ctrl = await fetchController nextRoute.controller, viewScope
-      view.setAttribute 'scope', viewScope.id
+      view.setAttribute 'scope', viewScope.$id
       view.innerHTML = await renderTemplate(await fetchTemplate(nextRoute), viewScope)
       fillComponentNodes()
       renderVars view, viewScope
       if typeof ctrl is 'function'
         ctrl()
     null
+  config = ->
+    for key, fn of data.config
+      await fn scope.root
   start = () ->
     styles = document.createElement 'style'
     styles.innerText = '.ymaHide {display:none}'
@@ -564,6 +581,7 @@ Yma = ->
     body = document.querySelector 'body'
     myscope = scope.root
     collectTemplatesFromHTML()
+    await config()
     changeRoute window.location.pathname
     #--------------------------------------
     # LISTENERS
@@ -606,8 +624,6 @@ Yma = ->
   yma.goto = changeRoute
   yma.getIndex = ->
     index
-  yma.getAllScope = ->
-    scope
   yma.getData = ->
     data
   yma.getScope = getScope
@@ -621,6 +637,8 @@ Yma = ->
       [expression, itemName] = repeatAttr.split /\s+by\s+/
       vars = readVars expression
       itemName = itemName or 'item'
+      if args.node.getAttribute
+        args.node.removeAttribute 'cid'
       template = args.node.outerHTML
       temp = document.createElement 'div'
       temp.innerHTML = template
@@ -643,7 +661,7 @@ Yma = ->
             elemRoot = frag.querySelector '*'
             elems[0].parentNode.insertBefore elemRoot, elems[0]
         elems[0].remove()
-        setRepeaterIndexVar @, rId, @.id, template, vars, refresh
+        setRepeaterIndexVar @, rId, @.$id, template, vars, refresh
         renderVars parent, getScope parent
       makeHtml = =>
         temp.innerHTML = template
@@ -651,7 +669,7 @@ Yma = ->
         elemRoot.removeAttribute 'repeat'
         items = evalInContext expression, @
         html = []
-        addItem = (item, i) ->
+        addItem = (item, i) =>
           myScope = Scope @
           myScope.$index = i
           myScope.$first = i is 0
@@ -659,7 +677,7 @@ Yma = ->
           myScope.$even = i % 2 is 1
           myScope.$odd = i % 2 is 0
           myScope[itemName] = item
-          elemRoot.setAttribute 'scope', myScope.id
+          elemRoot.setAttribute 'scope', myScope.$id
           elemRoot.setAttribute 'rid', rId
           html.push await renderTemplate(temp.innerHTML, myScope)
         if items
@@ -675,7 +693,7 @@ Yma = ->
               i++
         html
       html = await makeHtml()
-      setRepeaterIndexVar @, rId, @.id, template, vars, refresh
+      setRepeaterIndexVar @, rId, @.$id, template, vars, refresh
       overwrite: true
       html: html
       rid: rId
@@ -686,6 +704,7 @@ Yma = ->
       vars = readVars expression
       lastResult = undefined
       refresh = =>
+        console.log args.node.outerHTML
         result = evalInContext expression, @
         if result isnt lastResult
           lastResult = result
@@ -695,14 +714,17 @@ Yma = ->
               if childScope and childScope isnt @
                 childScope.$destroy()
             fragNodes = args.node.querySelector '[frag]'
+            console.log fragNodes
             if fragNodes
               if fragNodes.getAttribute
                 cleanFrag fragNodes.getAttribute('frag')
               else
                 for fragNode in fragNodes
                   cleanFrag fragNode.getAttribute('frag')
+            console.log 'clearing', @.$id
             args.node.innerHTML = ''
           else
+            console.log 'rendering', @.$id
             args.node.innerHTML = await renderTemplate(template, @)
             renderVars args.node, getScope(args.node, true) or @
         args.node.innerHTML

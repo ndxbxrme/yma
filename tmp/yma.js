@@ -3,7 +3,12 @@
   var Yma;
 
   Yma = function() {
-    var ComponentScope, HTTP, Router, Scope, callCallbacks, changeRoute, cleanFrag, collectTemplatesFromHTML, componentId, components, data, evalInContext, fetchController, fetchTemplate, fillComponentNodes, fillTemplate, fragId, getScope, getScopeVar, hash, http, index, j, len, makeRouteRegex, nodeId, objTypes, readVars, register, renderComponent, renderTemplate, renderVars, repeaterId, router, scope, scopeId, setIndexVar, setRepeaterIndexVar, sleep, start, type, updateFrags, view, viewScope, yma;
+    /*
+    if fragNode
+    else
+      cleanFrag frag.id
+    */
+    var ComponentScope, HTTP, Router, Scope, callCallbacks, changeRoute, cleanFrag, collectTemplatesFromHTML, componentId, components, config, data, evalInContext, fetchController, fetchTemplate, fillComponentNodes, fillTemplate, fragId, getScope, getScopeVar, hash, http, index, j, len, makeRouteRegex, nodeId, objTypes, readVars, register, renderComponent, renderTemplate, renderVars, repeaterId, router, scope, scopeId, setIndexVar, setRepeaterIndexVar, sleep, start, type, updateFrags, view, viewScope, yma;
     yma = {};
     objTypes = ['config', 'service', 'controller', 'component', 'template', 'route'];
     view = null;
@@ -20,12 +25,12 @@
     register = {};
     scope = {};
     components = {};
-    Scope = function(myscope, _id) {
+    Scope = function(parentScope, _id) {
       var j, key, len, newScope, ref, ref1;
       newScope = {
-        id: _id || `s${scopeId++}`,
+        $id: _id || `s${scopeId++}`,
         $root: scope.root,
-        $parent: myscope,
+        $parent: parentScope,
         $children: [],
         $callbacks: {
           destroy: []
@@ -69,7 +74,7 @@
             this.$updating = true;
             repeatersToUpdate = [];
             fragsToUpdate = [];
-            indexScope = index[this.id];
+            indexScope = index[this.$id];
             if (indexScope) {
               for (key in indexScope.vars) {
                 indexVar = indexScope.vars[key];
@@ -87,11 +92,11 @@
                       if (child.$isolate) {
                         continue;
                       }
-                      indexChild = index[child.id];
+                      indexChild = index[child.$id];
                       if (indexChild) {
                         for (icVarKey in indexChild.vars) {
                           icVar = indexChild.vars[icVarKey];
-                          if (icVar.routeStr === indexVar.routeStr) {
+                          if (icVar.route[0] === indexVar.route[0]) {
                             icVar.value = indexVar.value;
                             child[icVar.route[0]] = this[icVar.route[0]];
                             pushUpdateVars(icVar, indexChild);
@@ -110,7 +115,7 @@
                     results = [];
                     while (node) {
                       if (node.$parent) {
-                        indexParent = index[node.$parent.id];
+                        indexParent = index[node.$parent.$id];
                         if (indexParent) {
                           for (ipVarKey in indexParent.vars) {
                             ipVar = indexParent.vars[ipVarKey];
@@ -153,9 +158,9 @@
             child.$destroy();
           }
           this.children = void 0;
-          delete scope[this.id];
+          delete scope[this.$id];
           //find the fragments to delete and 
-          indexScope = index[this.id];
+          indexScope = index[this.$id];
           if (indexScope) {
             deleteIndexItems = function(itemKey) {
               var item, key, myvar, results, scopeKey, testScope;
@@ -165,7 +170,7 @@
                   var results1;
                   results1 = [];
                   for (scopeKey in index) {
-                    if (indexScope.id !== scopeKey) {
+                    if (indexScope.$id !== scopeKey) {
                       testScope = index[scopeKey];
                       if (testScope[itemKey]) {
                         delete testScope[itemKey][item];
@@ -204,14 +209,14 @@
             }
           }
           for (service in index.services) {
-            if (index.services[service][this.id]) {
-              delete index.services[service][this.id];
+            if (index.services[service][this.$id]) {
+              delete index.services[service][this.$id];
             }
             if (Object.keys(index.services[service]).length === 0) {
               delete index.services[service];
             }
           }
-          return delete index[this.id];
+          return delete index[this.$id];
         },
         $use: function(args) {
           var arg, j, len, results;
@@ -224,7 +229,7 @@
             if (data.service[arg]) {
               this[`_${arg}`] = data.service[arg];
               index.services[arg] = index.services[arg] || {};
-              results.push(index.services[arg][this.id] = true);
+              results.push(index.services[arg][this.$id] = true);
             } else {
               results.push(void 0);
             }
@@ -233,18 +238,18 @@
         },
         $inherit: function() {}
       };
-      scope[newScope.id] = newScope;
-      if (myscope != null) {
-        if ((ref = myscope.$children) != null) {
+      scope[newScope.$id] = newScope;
+      if (parentScope != null) {
+        if ((ref = parentScope.$children) != null) {
           ref.push(newScope);
         }
       }
-      if (myscope) {
-        ref1 = Object.keys(myscope);
+      if (parentScope) {
+        ref1 = Object.keys(parentScope);
         for (j = 0, len = ref1.length; j < len; j++) {
           key = ref1[j];
           if (!newScope.hasOwnProperty(key)) {
-            newScope[key] = myscope[key];
+            newScope[key] = parentScope[key];
           }
         }
       }
@@ -358,20 +363,26 @@
       type = objTypes[j];
       data[type] = {};
       (function(type) {
+        var objCount;
+        objCount = 0;
         return yma[type] = function(name, fn) {
           var cScope, k, len1, results, route;
           cScope = ComponentScope(name);
-          data[type][name] = fn.call(cScope);
-          if (type === 'route') {
-            if (typeof name === 'array') {
-              results = [];
-              for (k = 0, len1 = name.length; k < len1; k++) {
-                route = name[k];
-                results.push(makeRouteRegex(name, route));
+          if (type === 'config') {
+            return data[type][`o${objCount++}`] = name;
+          } else {
+            data[type][name] = fn.call(cScope);
+            if (type === 'route') {
+              if (typeof name === 'array') {
+                results = [];
+                for (k = 0, len1 = name.length; k < len1; k++) {
+                  route = name[k];
+                  results.push(makeRouteRegex(name, route));
+                }
+                return results;
+              } else {
+                return makeRouteRegex(name, name);
               }
-              return results;
-            } else {
-              return makeRouteRegex(name, name);
             }
           }
         };
@@ -439,6 +450,9 @@
     };
     getScope = function(elem, nullOrRoot) {
       var myscope;
+      if (!elem) {
+        return scope;
+      }
       while (elem && elem.tagName !== 'HTML' && elem.getAttribute) {
         if (myscope = elem.getAttribute('scope')) {
           return scope[myscope];
@@ -513,7 +527,7 @@
     //--------------------------------------
     setIndexVar = function(myscope, fragId, fragIndex, fragScopeId, template, vars, refreshFn) {
       var frag, indexScope, myfrags, myvars;
-      indexScope = index[myscope.id] = index[myscope.id] || {
+      indexScope = index[myscope.$id] = index[myscope.$id] || {
         frags: {},
         vars: {},
         repeaters: {}
@@ -543,7 +557,9 @@
           }
         }
         if (typeof myvars[myvar.name] === 'undefined') {
-          myscope[myvar.name] = myscope[myvar.name] || null;
+          if (!/[\.\(\)]/.test(myvar.name)) {
+            myscope[myvar.name] = myscope[myvar.name] || null;
+          }
           myvars[myvar.name] = {
             value: hash(JSON.stringify(evalInContext(myvar.name, myscope))),
             route: myvar.route,
@@ -577,7 +593,7 @@
     };
     setRepeaterIndexVar = function(myscope, repeaterId, repeaterScopeId, template, vars, refreshFn) {
       var indexScope, myrepeaters, myvars, repeater;
-      indexScope = index[myscope.id] = index[myscope.id] || {
+      indexScope = index[myscope.$id] = index[myscope.$id] || {
         frags: {},
         vars: {},
         repeaters: {}
@@ -665,7 +681,7 @@
     };
     renderComponent = async function(node, elem, myscope, append) {
       var attribute, cid, className, elemData, elemRoot, frag, i, k, len1, newScope, ref, result, temp, template;
-      cid = `c${componentId++}`;
+      cid = node.getAttribute('cid') || `c${componentId++}`;
       node.setAttribute('cid', cid);
       temp = document.createElement('template');
       frag = document.createElement('div');
@@ -719,13 +735,14 @@
         }
       }
       if (elem.scope || node.getAttribute('scope')) {
-        elemRoot.setAttribute('scope', newScope.id);
+        elemRoot.setAttribute('scope', newScope.$id);
       }
       if (node.getAttribute('rid')) {
         elemRoot.setAttribute('rid', node.getAttribute('rid'));
       }
       //renderedNode.removeAttribute 'cid'
-      components[cid] = elemData;
+      components[cid] = components[cid] || [];
+      components[cid].push(elemData);
       if (typeof result === 'function') {
         result();
       }
@@ -760,12 +777,15 @@
     // VARIABLE RENDERING
     //--------------------------------------
     fillComponentNodes = function() {
-      var cid, elemData, renderedNode;
+      var cid, elemData, elemDataArray, k, len1, renderedNode;
       for (cid in components) {
-        elemData = components[cid];
+        elemDataArray = components[cid];
         if (renderedNode = document.querySelector(`[cid=${cid}]`)) {
-          renderedNode.removeAttribute('cid');
-          elemData.node = renderedNode;
+//renderedNode.removeAttribute 'cid'
+          for (k = 0, len1 = elemDataArray.length; k < len1; k++) {
+            elemData = elemDataArray[k];
+            elemData.node = renderedNode;
+          }
         }
       }
       return components = {};
@@ -864,7 +884,7 @@
         var vars;
         vars = readVars(expression);
         if (typeof fragId !== 'undefined') {
-          setIndexVar(data, fragId, fragIndex, data.id, template, vars);
+          setIndexVar(data, fragId, fragIndex, data.$id, template, vars);
         }
         return evalInContext(expression, data) || '';
       });
@@ -891,7 +911,7 @@
         viewScope = Scope(scope.root);
         viewScope.$params = nextRouteData.params;
         ctrl = (await fetchController(nextRoute.controller, viewScope));
-        view.setAttribute('scope', viewScope.id);
+        view.setAttribute('scope', viewScope.$id);
         view.innerHTML = (await renderTemplate((await fetchTemplate(nextRoute)), viewScope));
         fillComponentNodes();
         renderVars(view, viewScope);
@@ -901,7 +921,17 @@
       }
       return null;
     };
-    start = function() {
+    config = async function() {
+      var fn, key, ref, results;
+      ref = data.config;
+      results = [];
+      for (key in ref) {
+        fn = ref[key];
+        results.push((await fn(scope.root)));
+      }
+      return results;
+    };
+    start = async function() {
       var body, myscope, styles;
       styles = document.createElement('style');
       styles.innerText = '.ymaHide {display:none}';
@@ -909,6 +939,7 @@
       body = document.querySelector('body');
       myscope = scope.root;
       collectTemplatesFromHTML();
+      await config();
       changeRoute(window.location.pathname);
       //--------------------------------------
       // LISTENERS
@@ -968,9 +999,6 @@
     yma.getIndex = function() {
       return index;
     };
-    yma.getAllScope = function() {
-      return scope;
-    };
     yma.getData = function() {
       return data;
     };
@@ -987,6 +1015,9 @@
           [expression, itemName] = repeatAttr.split(/\s+by\s+/);
           vars = readVars(expression);
           itemName = itemName || 'item';
+          if (args.node.getAttribute) {
+            args.node.removeAttribute('cid');
+          }
           template = args.node.outerHTML;
           temp = document.createElement('div');
           temp.innerHTML = template;
@@ -1017,7 +1048,7 @@
               }
             }
             elems[0].remove();
-            setRepeaterIndexVar(this, rId, this.id, template, vars, refresh);
+            setRepeaterIndexVar(this, rId, this.$id, template, vars, refresh);
             return renderVars(parent, getScope(parent));
           };
           makeHtml = async() => {
@@ -1027,7 +1058,7 @@
             elemRoot.removeAttribute('repeat');
             items = evalInContext(expression, this);
             html = [];
-            addItem = async function(item, i) {
+            addItem = async(item, i) => {
               var myScope;
               myScope = Scope(this);
               myScope.$index = i;
@@ -1036,7 +1067,7 @@
               myScope.$even = i % 2 === 1;
               myScope.$odd = i % 2 === 0;
               myScope[itemName] = item;
-              elemRoot.setAttribute('scope', myScope.id);
+              elemRoot.setAttribute('scope', myScope.$id);
               elemRoot.setAttribute('rid', rId);
               return html.push((await renderTemplate(temp.innerHTML, myScope)));
             };
@@ -1060,7 +1091,7 @@
             return html;
           };
           html = (await makeHtml());
-          setRepeaterIndexVar(this, rId, this.id, template, vars, refresh);
+          setRepeaterIndexVar(this, rId, this.$id, template, vars, refresh);
           return {
             overwrite: true,
             html: html,
@@ -1079,6 +1110,7 @@
           lastResult = void 0;
           refresh = async() => {
             var child, childScope, fragNode, fragNodes, k, l, len1, len2, ref, result;
+            console.log(args.node.outerHTML);
             result = evalInContext(expression, this);
             if (result !== lastResult) {
               lastResult = result;
@@ -1092,6 +1124,7 @@
                   }
                 }
                 fragNodes = args.node.querySelector('[frag]');
+                console.log(fragNodes);
                 if (fragNodes) {
                   if (fragNodes.getAttribute) {
                     cleanFrag(fragNodes.getAttribute('frag'));
@@ -1102,8 +1135,10 @@
                     }
                   }
                 }
+                console.log('clearing', this.$id);
                 args.node.innerHTML = '';
               } else {
+                console.log('rendering', this.$id);
                 args.node.innerHTML = (await renderTemplate(template, this));
                 renderVars(args.node, getScope(args.node, true) || this);
               }
