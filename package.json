@@ -1,10 +1,11 @@
 {
   "name": "yma",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "a fun, lightweight frontend framework",
-  "main": "dist/index.js",
+  "main": "dist/main.js",
   "scripts": {
-    "test": "node build/test.js"
+    "test": "node build/test.js",
+    "build": "webpack --mode production"
   },
   "repository": {
     "type": "git",
@@ -14,19 +15,10 @@
   "license": "MIT",
   "homepage": "https://github.com/ndxbxrme/yma",
   "devDependencies": {
-    "grunt": "^1.0.2",
-    "grunt-cli": "^1.2.0",
-    "grunt-contrib-clean": "^1.1.0",
-    "grunt-contrib-coffee": "^2.0.0",
-    "grunt-contrib-concat": "^1.0.1",
-    "grunt-contrib-nodeunit": "^1.0.0",
-    "grunt-contrib-watch": "^1.0.1",
-    "grunt-webpack": "^3.1.1",
-    "load-grunt-tasks": "^3.5.2",
-    "webpack": "^4.8.1"
+    "coffee-loader": "^0.9.0",
+    "coffeescript": "^2.5.1",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10"
   },
-  "dependencies": {
-    "acorn": "^5.5.3",
-    "grunt-file-append": "0.0.7"
-  }
+  "dependencies": {}
 }
