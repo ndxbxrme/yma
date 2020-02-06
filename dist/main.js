@@ -1,1 +1,715 @@
-!function(e){var t={};function n(r){if(t[r])return t[r].exports;var i=t[r]={i:r,l:!1,exports:{}};return e[r].call(i.exports,i,i.exports,n),i.l=!0,i.exports}n.m=e,n.c=t,n.d=function(e,t,r){n.o(e,t)||Object.defineProperty(e,t,{enumerable:!0,get:r})},n.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},n.t=function(e,t){if(1&t&&(e=n(e)),8&t)return e;if(4&t&&"object"==typeof e&&e&&e.__esModule)return e;var r=Object.create(null);if(n.r(r),Object.defineProperty(r,"default",{enumerable:!0,value:e}),2&t&&"string"!=typeof e)for(var i in e)n.d(r,i,function(t){return e[t]}.bind(null,i));return r},n.n=function(e){var t=e&&e.__esModule?function(){return e.default}:function(){return e};return n.d(t,"a",t),t},n.o=function(e,t){return Object.prototype.hasOwnProperty.call(e,t)},n.p="/",n(n.s=0)}([function(e,t,n){var r,i,o,u,a;a=function(e,t){return parseInt(((new Date).valueOf()-new Date(2020,0,1).valueOf()).toString().concat(Math.floor(9999*Math.random())).split("").reverse().join("")).toString(e||36)},o=function(e){var t,n;if(void 0===e)return 0;for(t=5381,n=e.length;n;)t=33*t^e.charCodeAt(--n);return t},u=function(e){var t,n,r;for(n in t={},e)r=e[n],/^\$/.test(n)||(t[n]=o(JSON.stringify(r)));return t},r=function(){var e;return e={},{$on:function(t,n){return e[t]=e[t]||[],e[t].push(n)},$off:function(t,n){return e[t]=e[t]||[],e[t].splice(e[t].indexOf(n),1)},$call:async function(t,n){var r,i,o,u,a;if(e[t]){for(a=[],i=0,o=(u=e[t]).length;i<o;i++)r=u[i],a.push(await r(n));return a}}}},i=function(e){var t,n,i,l,c,f,s,d,p,h,$,v,g,m,w,N,b,y,O,T,C;return b=null,$=function(e,t){var n,r;if(e===(t=t||b))return"root";for(n="";e!==t;){for(n+=e.tagName+":",r=e;r.previousSibling;)n+=r.tagName+"@",r=r.previousSibling;e=e.parentNode}return n},s=function(e,t){try{return new Function(`with(this) {return ${e}}`).call(t)}catch(e){}},d=function(e,t){return e.replace(/\{\{(.+?)\}\}/g,(function(e,n){return s(n,t)||""}))},c={},f=[],y={},O={},i=r(),n=!1,v=function(e,t){var n,r,i;for(n in r=[],t)i=t[n],/^\$/.test(n)?r.push(void 0):r.push(e[n]=i);return r},C=async function(){var e,t,n,r,i;for(e in r=[],y)i=y[e],0===f.filter((function(t){return t.scope===e})).length?(null!=(t=i.$parent)&&t.$children.splice(null!=(n=i.$parent)?n.$children.indexOf(e):void 0,1),await i.$call("teardown"),r.push(delete y[i.$id])):r.push(void 0);return r},t=function(e){var t,n,i,o;return i=r(),o=[],t=[],n={$id:a(),$children:[],$parent:null,$update:async function(e,t){var n,r,i,o,a,c,s,d,h,$,v,m,w,b,O,C,A,M,S;for(h=this;h.$parent;){for(s in e)void 0!==h[s]?(C=h[s]===(null!=(w=h.$parent)?w[s]:void 0),h[s]=e[s],C||delete e[s]):delete e[s];h=h.$parent}for(S=Object.values(y).filter((function(e){return JSON.stringify(e.$hash)!==JSON.stringify(u(e))})),a=0;S.length>a+1;){for(o=S.length;o-- >a;)S[o].$isDescendantOf(S[0])?S.splice(o,1):S[o].$isAncestorOf(S[0])&&(S[0]=S[o],S.splice(o,1));a++}for(M=function(e,t){var n,r,i,o,a,l,c;for(s in o=u(e))o[s]!==(null!=(a=e.$hash)?a[s]:void 0)?void 0!==t[s]&&(t[s]=e[s]):void 0!==t[s]&&(e[s]=t[s]);for(e.$hash=o,c=[],r=0,i=(l=e.$children).length;r<i;r++)n=l[r],c.push(M(n,t));return c},v=document.createElement("div"),$=[],m=f[0],v.innerHTML=m.html,await g(v,v,0,$),A=$.filter((function(e){return/^UNKNOWN@/.test(e.id)})),i=[],A.forEach((function(e){var t;if(t=e.id.replace(/UNKNOWN@\w+:[\w@]+@/,""),!i.includes(t))return i.push(t)})),c=0,d=i.length;c<d;c++)n=i[c],(r=f.filter((function(e){return e.id===n}))[0])&&(O=y[r.scope],await T(n),r.elem.innerHTML=r.html,await N(r.elem,O));for(b=function(e){var t,n,r,i,o,u,a,l,c,s,d,p,h,$,v,g,m;for(i=0,u=(r=f.filter((function(t){return t.scope===e.$id}))).length;i<u;i++){for(g=0,o=0,a=(p=(n=r[i]).elem.childNodes).length;o<a;o++)(d=p[o]).nodeType===document.TEXT_NODE&&d.replaceWith(n.textNodes[g++]||"");for(s in h=n.attributes)m=h[s],n.elem.setAttribute(s,m)}for(v=[],c=0,l=($=e.$children).length;c<l;c++)t=$[c],v.push(b(t));return v},o=S.length;o-- >0;)M(S[o],{}),b(S[o]),await S[o].$callChildren("update");await p(),await l(),v=null},$use:function(e){var t,n;return(n=O[e])?(this[e]=n.fn,n.scopes.push(this.$id)):(t=c[e.toUpperCase()])&&(O[e]={fn:(t.service||t)(),scopes:[this.$id]},this[e]=O[e].fn),this.$on("teardown",(function(){return O[e].scopes.splice(O[e].scopes.indexOf(this.$id),1)}))},$on:i.$on,$off:i.$off,$call:i.$call,$callChildren:async function(e,t){var n,r,o,u;for(await i.$call(e,t),r=0,o=(u=this.$children).length;r<o;r++)n=u[r],await n.$callChildren(e,t);return null},$isDescendantOf:function(e){var t;if(e.$id===this.$id)return!1;for(t=this;t.$parent;){if(t.$id===e.$id)return!0;t=t.$parent}return!1},$isAncestorOf:function(e){var t;return e.$id!==this.$id&&(t=function(n){var r,i,o,u;if(n.$id===e.$id)return!0;for(i=0,o=(u=n.$children).length;i<o;i++)if(r=u[i],t(r))return!0;return!1})(e)},$timeout:function(e,t){return 0===o.length&&i.$on("teardown",(function(){var e,t,n,r;for(n=[],e=0,t=o.length;e<t;e++)r=o[e],n.push(window.clearTimeout(r));return n})),o.push(window.setTimeout(e,t))},$interval:function(e,n){return 0===t.length&&i.$on("teardown",(function(){var e,n,r,i;for(i=[],n=0,r=t.length;n<r;n++)e=t[n],i.push(window.clearTimeout(e));return i})),t.push(window.setTimeout(e,n))}},e&&e.$id&&(e.$children.push(n),n.$parent=e),v(n,e),n},N=async function(e,t){var n,r,i,o,u,a,l,c;for(r=[],i=0,u=(l=e.children).length;i<u;i++)n=l[i],r.push(n);for(c=[],o=0,a=r.length;o<a;o++)n=r[o],c.push(await w(n,t));return c},w=async function(e,n){var r,i,o,a,l,s,d,p,v,g,m,b,O,T,C,A,M,S;for(C=null,y[n.$id]=n,n.$hash=u(n),n.$call("bootstrap"),s=e.innerHTML,S=[],o={},p=0,g=(A=e.childNodes).length;p<g;p++)(T=A[p]).nodeType===document.TEXT_NODE&&S.push(T.data);for(v=0,m=(M=e.getAttributeNames()).length;v<m;v++)if(o[r=M[v]]=e.getAttribute(r),i=c[r.toUpperCase()]){if("function"==typeof i.pre&&(b=await i.pre(n,e,h(e))),void 0!==b&&(e.removeAttribute(r),C="PREX:"+$(e),b))if(b.length){for(d=b.length;d-- >0;)(a=e.cloneNode()).innerHTML=e.innerHTML,e.parentNode.insertBefore(a,e.nextSibling),w(a,b[d]);e.parentNode.removeChild(e)}else 0===b.length&&e.parentNode.removeChild(e);e.setAttribute("checkattrs",!0)}return(l=c[e.tagName])&&(O=t(n),y[(n=O).$id]=n,l.controller&&l.controller(n,e),n.$hash=u(n),e.innerHTML=l.template?l.template:s,e.innerHTML=e.innerHTML.replace("<children></children>",s)),f.push({id:C||$(e),elem:e,scope:n.$id,html:s,textNodes:S,attributes:o}),await N(e,n)},m=async function(e,t,n){var r,i,o,u,a,l,c,f;for(i=[],o=0,a=(c=e.children).length;o<a;o++)r=c[o],i.push(r);for(f=[],u=0,l=i.length;u<l;u++)r=i[u],f.push(await g(r,t,0,n));return f},g=async function(e,t,n,r){var i,o,u,a,l,s,d,p,v,w,N,b,O,T,C;if(p=$(e,t),b="PREX:"+p,s=e.innerHTML,u={},O=f.filter((function(e){return e.id===p||e.id===b}))[n],C=y[null!=O?O.scope:void 0],O||C){for(v=0,w=(T=e.getAttributeNames()).length;v<w;v++)if(u[i=T[v]]=e.getAttribute(i),(o=c[i.toUpperCase()])&&("function"==typeof o.pre&&(N=await o.pre(C,e,h(e))),void 0!==N&&N))if(N.length){for(d=N.length;d-- >0;)N[d].$parent.$children.splice(N[d].$parent.$children.indexOf(N[d],1)),(a=e.cloneNode()).innerHTML=e.innerHTML,a.removeAttribute(i),e.parentNode.insertBefore(a,e.nextSibling),await g(a,t,d-1,r);e.parentNode.removeChild(e)}else if(0===N.length)return r.push({id:"UNKNOWN@H1:H1@"+$(e.parentNode,t)}),void e.parentNode.removeChild(e);return(l=c[e.tagName])&&(e.innerHTML=l.template?l.template:s,e.innerHTML=e.innerHTML.replace("<children></children>",s)),r.push({id:p}),await m(e,t,r)}r.push({id:"UNKNOWN@"+p})},p=function(){var e,t,n,r,i,o,u,a;for(e=f.length,u=[];e-- >0;){for(t=0,n=(o=f[e].elem.childNodes).length;t<n;t++)(i=o[t]).nodeType===document.TEXT_NODE&&/\{\{/.test(i.data)&&i.replaceWith(d(i.data,y[f[e].scope]));u.push(function(){var t,n,i,o;for(o=[],t=0,n=(i=f[e].elem.getAttributeNames()).length;t<n;t++)r=i[t],/\{\{/.test(a=f[e].elem.getAttribute(r))?o.push(f[e].elem.setAttribute(r,d(a,y[f[e].scope]))):o.push(void 0);return o}())}return u},l=function(){var e,t,n,r,i,o,u;for(u=[],i=0,o=f.length;i<o;i++)(r=f[i]).elem.getAttribute("checkattrs")?(r.elem.removeAttribute("checkattrs"),u.push(function(){var i,o,u,a;for(a=[],i=0,o=(u=r.elem.getAttributeNames()).length;i<o;i++)e=u[i],(t=c[e.toUpperCase()])?("function"==typeof(n=t.post||t)&&n(y[r.scope],r.elem,h(r.elem)),a.push(r.elem.removeAttribute(e))):a.push(void 0);return a}())):u.push(void 0);return u},{render:async function(r,o){return n||(await i.$call("bootstrap"),n=!0),r=r||document.querySelector("[app="+e+"]"),b=b||r,o=o||t(),await w(r,o),await p(),await l(),i.$call("rendered")},$renderChildren:async function(e,t){return await N(e,t),await p(),await l(),i.$call("rendered")},component:function(e,t){var n;if("object"==typeof e)for(n in e)t=e[n],c[n.toUpperCase()]=t(this);else c[e.toUpperCase()]=t(this);return this},Scope:t,Callbacks:r,$getComponents:function(){return c},$getElements:function(){return f},$getServices:function(){return O},$getScopes:function(){return y},$eval:s,$getProps:h=function(e){var t;return t={},e.getAttributeNames().forEach((function(n){return t[n]=e.getAttribute(n)})),t},$teardown:async function(e){var t;return t=new RegExp(e+"$"),f=f.filter((function(e){return!t.test(e.id)})),await C()},$teardownChildren:T=async function(e){var t;return t=new RegExp(".+"+e+"$"),f=f.filter((function(e){return!t.test(e.id)})),await C()},$on:i.$on,$off:i.$off,$hash:o,$hashObject:u,$makeId:$,$getService:function(e){var t,n;return(n=O[e])?n.fn:(t=c[e.toUpperCase()])?(O[e]={fn:(t.service||t)(),scopes:[]},O[e].fn):null},$addClass:function(e,t){var n,r,i;for("string"==typeof t&&(t=[t]),r=0,i=t.length;r<i;r++)n=t[r],this.$removeClass(e,n),e.className+=" "+n;return null},$removeClass:function(e,t){var n,r,i,o;for("string"==typeof t&&(t=[t]),r=0,i=t.length;r<i;r++)n=t[r],o=new RegExp("\\s*\\b"+n+"\\b","g"),e.className=e.className.replace(o,"");return null}}},e.exports=i}]);
+// Generated by CoffeeScript 2.5.1
+(function() {
+  var Callbacks, Yma, hash, hashObject, ogid;
+
+  ogid = function(radix, rnd) {
+    return parseInt((new Date().valueOf() - new Date(2020, 0, 1).valueOf()).toString().concat(Math.floor(Math.random() * (9999 || rnd))).split('').reverse().join('')).toString(radix || 36);
+  };
+
+  hash = function(str) {
+    var h, i;
+    if (typeof str === 'undefined') {
+      return 0;
+    }
+    h = 5381;
+    i = str.length;
+    while (i) {
+      h = (h * 33) ^ str.charCodeAt(--i);
+    }
+    return h;
+  };
+
+  hashObject = function(obj) {
+    var hashed, key, val;
+    hashed = {};
+    for (key in obj) {
+      val = obj[key];
+      if (/^\$/.test(key)) {
+        continue;
+      }
+      hashed[key] = hash(JSON.stringify(val));
+    }
+    return hashed;
+  };
+
+  Callbacks = function() {
+    var callbacks;
+    callbacks = {};
+    return {
+      $on: function(name, fn) {
+        callbacks[name] = callbacks[name] || [];
+        return callbacks[name].push(fn);
+      },
+      $off: function(name, fn) {
+        callbacks[name] = callbacks[name] || [];
+        return callbacks[name].splice(callbacks[name].indexOf(fn), 1);
+      },
+      $call: async function(name, data) {
+        var fn, j, len, ref, results;
+        if (callbacks[name]) {
+          ref = callbacks[name];
+          results = [];
+          for (j = 0, len = ref.length; j < len; j++) {
+            fn = ref[j];
+            results.push((await fn(data)));
+          }
+          return results;
+        }
+      }
+    };
+  };
+
+  Yma = function(appName) {
+    var Scope, bootstrapped, callbacks, checkAttrs, components, elements, evalInContext, fillTemplate, fillVars, getProps, makeId, mergeScopes, preRender, preRenderChildren, render, renderChildren, rootElem, scopes, services, teardown, teardownChildren, updateScopes;
+    rootElem = null;
+    makeId = function(node, root) {
+      var id, mynode;
+      root = root || rootElem;
+      if (node === root) {
+        return 'root';
+      }
+      id = '';
+      while (node !== root) {
+        id += node.tagName + ':';
+        mynode = node;
+        while (mynode.previousSibling) {
+          id += mynode.tagName + '@';
+          mynode = mynode.previousSibling;
+        }
+        node = node.parentNode;
+      }
+      return id;
+    };
+    evalInContext = function(str, context) {
+      try {
+        return (new Function(`with(this) {return ${str}}`)).call(context);
+      } catch (error) {}
+    };
+    fillTemplate = function(template, scope) {
+      return template.replace(/\{\{(.+?)\}\}/g, function(all, expression) {
+        return evalInContext(expression, scope) || '';
+      });
+    };
+    components = {};
+    elements = [];
+    scopes = {};
+    services = {};
+    callbacks = Callbacks();
+    bootstrapped = false;
+    mergeScopes = function(scope, merge) {
+      var key, results, val;
+      results = [];
+      for (key in merge) {
+        val = merge[key];
+        if (!/^\$/.test(key)) {
+          results.push(scope[key] = val);
+        } else {
+          results.push(void 0);
+        }
+      }
+      return results;
+    };
+    updateScopes = async function() {
+      var id, ref, ref1, results, scope, scopeElems;
+      results = [];
+      for (id in scopes) {
+        scope = scopes[id];
+        scopeElems = elements.filter(function(element) {
+          return element.scope === id;
+        });
+        if (scopeElems.length === 0) {
+          if ((ref = scope.$parent) != null) {
+            ref.$children.splice((ref1 = scope.$parent) != null ? ref1.$children.indexOf(id) : void 0, 1);
+          }
+          await scope.$call('teardown');
+          //remove scope from any services
+          results.push(delete scopes[scope.$id]);
+        } else {
+          results.push(void 0);
+        }
+      }
+      return results;
+    };
+    teardown = async function(id) {
+      var r;
+      r = new RegExp(id + '$');
+      elements = elements.filter(function(element) {
+        return !r.test(element.id);
+      });
+      return (await updateScopes());
+    };
+    teardownChildren = async function(id) {
+      var r;
+      r = new RegExp('.+' + id + '$');
+      elements = elements.filter(function(element) {
+        return !r.test(element.id);
+      });
+      return (await updateScopes());
+    };
+    Scope = function(merge) {
+      var intervals, newscope, scopeCallbacks, timeouts;
+      scopeCallbacks = Callbacks();
+      timeouts = [];
+      intervals = [];
+      newscope = {
+        $id: ogid(),
+        $children: [],
+        $parent: null,
+        $update: async function(updates, hard) {
+          var elemId, element, elemsToUpdate, i, index, j, key, len, myscope, preElements, preRoot, realRoot, ref, reset, scope, sharedWithParent, unknowns, updateScope, updatedScopes;
+          myscope = this;
+          while (myscope.$parent) {
+            for (key in updates) {
+              if (typeof myscope[key] !== 'undefined') {
+                sharedWithParent = myscope[key] === ((ref = myscope.$parent) != null ? ref[key] : void 0);
+                myscope[key] = updates[key];
+                if (!sharedWithParent) {
+                  delete updates[key];
+                }
+              } else {
+                delete updates[key];
+              }
+            }
+            myscope = myscope.$parent;
+          }
+          updatedScopes = Object.values(scopes).filter(function(scope) {
+            return JSON.stringify(scope.$hash) !== JSON.stringify(hashObject(scope));
+          });
+          index = 0;
+          while (updatedScopes.length > index + 1) {
+            i = updatedScopes.length;
+            while (i-- > index) {
+              if (updatedScopes[i].$isDescendantOf(updatedScopes[0])) {
+                updatedScopes.splice(i, 1);
+                continue;
+              }
+              if (updatedScopes[i].$isAncestorOf(updatedScopes[0])) {
+                updatedScopes[0] = updatedScopes[i];
+                updatedScopes.splice(i, 1);
+                continue;
+              }
+            }
+            index++;
+          }
+          updateScope = function(scope, changedVars) {
+            var childScope, j, len, myhash, ref1, ref2, results, val;
+            myhash = hashObject(scope);
+            for (key in myhash) {
+              val = myhash[key];
+              if (val !== ((ref1 = scope.$hash) != null ? ref1[key] : void 0)) {
+                if (typeof changedVars[key] !== 'undefined') {
+                  changedVars[key] = scope[key];
+                }
+              } else {
+                if (typeof changedVars[key] !== 'undefined') {
+                  scope[key] = changedVars[key];
+                }
+              }
+            }
+            scope.$hash = myhash;
+            ref2 = scope.$children;
+            results = [];
+            for (j = 0, len = ref2.length; j < len; j++) {
+              childScope = ref2[j];
+              results.push(updateScope(childScope, changedVars));
+            }
+            return results;
+          };
+          preRoot = document.createElement('div');
+          preElements = [];
+          realRoot = elements[0];
+          preRoot.innerHTML = realRoot.html;
+          await preRender(preRoot, preRoot, 0, preElements);
+          unknowns = preElements.filter(function(element) {
+            return /^UNKNOWN@/.test(element.id);
+          });
+          elemsToUpdate = [];
+          unknowns.forEach(function(unknown) {
+            var parentId;
+            parentId = unknown.id.replace(/UNKNOWN@\w+:[\w@]+@/, '');
+            if (!elemsToUpdate.includes(parentId)) {
+              return elemsToUpdate.push(parentId);
+            }
+          });
+          for (j = 0, len = elemsToUpdate.length; j < len; j++) {
+            elemId = elemsToUpdate[j];
+            element = elements.filter(function(element) {
+              return element.id === elemId;
+            })[0];
+            if (element) {
+              scope = scopes[element.scope];
+              await teardownChildren(elemId);
+              element.elem.innerHTML = element.html;
+              await renderChildren(element.elem, scope);
+            }
+          }
+          reset = function(scope) {
+            var childScope, elem, elemsToReset, k, l, len1, len2, len3, m, name, node, ref1, ref2, ref3, results, t, val;
+            elemsToReset = elements.filter(function(element) {
+              return element.scope === scope.$id;
+            });
+            for (k = 0, len1 = elemsToReset.length; k < len1; k++) {
+              elem = elemsToReset[k];
+              t = 0;
+              ref1 = elem.elem.childNodes;
+              for (l = 0, len2 = ref1.length; l < len2; l++) {
+                node = ref1[l];
+                if (node.nodeType === document.TEXT_NODE) {
+                  node.replaceWith(elem.textNodes[t++] || '');
+                }
+              }
+              ref2 = elem.attributes;
+              for (name in ref2) {
+                val = ref2[name];
+                elem.elem.setAttribute(name, val);
+              }
+            }
+            ref3 = scope.$children;
+            results = [];
+            for (m = 0, len3 = ref3.length; m < len3; m++) {
+              childScope = ref3[m];
+              results.push(reset(childScope));
+            }
+            return results;
+          };
+          i = updatedScopes.length;
+          while (i-- > 0) {
+            updateScope(updatedScopes[i], {});
+            reset(updatedScopes[i]);
+            await updatedScopes[i].$callChildren('update');
+          }
+          await fillVars();
+          await checkAttrs();
+          preRoot = null;
+        },
+        $use: function(name) {
+          var component, service;
+          if (service = services[name]) {
+            this[name] = service.fn;
+            service.scopes.push(this.$id);
+          } else if (component = components[name.toUpperCase()]) {
+            services[name] = {
+              fn: (component.service || component)(),
+              scopes: [this.$id]
+            };
+            this[name] = services[name].fn;
+          }
+          return this.$on('teardown', function() {
+            return services[name].scopes.splice(services[name].scopes.indexOf(this.$id), 1);
+          });
+        },
+        $on: scopeCallbacks.$on,
+        $off: scopeCallbacks.$off,
+        $call: scopeCallbacks.$call,
+        $callChildren: async function(name, data) {
+          var childScope, j, len, ref;
+          await scopeCallbacks.$call(name, data);
+          ref = this.$children;
+          for (j = 0, len = ref.length; j < len; j++) {
+            childScope = ref[j];
+            await childScope.$callChildren(name, data);
+          }
+          return null;
+        },
+        $isDescendantOf: function(scope) {
+          var myscope;
+          if (scope.$id === this.$id) {
+            return false;
+          }
+          myscope = this;
+          while (myscope.$parent) {
+            if (myscope.$id === scope.$id) {
+              return true;
+            }
+            myscope = myscope.$parent;
+          }
+          return false;
+        },
+        $isAncestorOf: function(scope) {
+          var check;
+          if (scope.$id === this.$id) {
+            return false;
+          }
+          check = function(myscope) {
+            var childScope, j, len, ref;
+            if (myscope.$id === scope.$id) {
+              return true;
+            }
+            ref = myscope.$children;
+            for (j = 0, len = ref.length; j < len; j++) {
+              childScope = ref[j];
+              if (check(childScope)) {
+                return true;
+              }
+            }
+            return false;
+          };
+          return check(scope);
+        },
+        $timeout: function(fn, delay) {
+          if (timeouts.length === 0) {
+            scopeCallbacks.$on('teardown', function() {
+              var j, len, results, timeout;
+              results = [];
+              for (j = 0, len = timeouts.length; j < len; j++) {
+                timeout = timeouts[j];
+                results.push(window.clearTimeout(timeout));
+              }
+              return results;
+            });
+          }
+          return timeouts.push(window.setTimeout(fn, delay));
+        },
+        $interval: function(fn, delay) {
+          if (intervals.length === 0) {
+            scopeCallbacks.$on('teardown', function() {
+              var interval, j, len, results;
+              results = [];
+              for (j = 0, len = intervals.length; j < len; j++) {
+                interval = intervals[j];
+                results.push(window.clearTimeout(interval));
+              }
+              return results;
+            });
+          }
+          return intervals.push(window.setTimeout(fn, delay));
+        }
+      };
+      if (merge && merge.$id) {
+        merge.$children.push(newscope);
+        newscope.$parent = merge;
+      }
+      mergeScopes(newscope, merge);
+      return newscope;
+    };
+    getProps = function(elem) {
+      var myattrs;
+      myattrs = {};
+      elem.getAttributeNames().forEach(function(name) {
+        return myattrs[name] = elem.getAttribute(name);
+      });
+      return myattrs;
+    };
+    renderChildren = async function(elem, scope) {
+      var child, children, j, k, len, len1, ref, results;
+      children = [];
+      ref = elem.children;
+      for (j = 0, len = ref.length; j < len; j++) {
+        child = ref[j];
+        children.push(child);
+      }
+      results = [];
+      for (k = 0, len1 = children.length; k < len1; k++) {
+        child = children[k];
+        results.push((await render(child, scope)));
+      }
+      return results;
+    };
+    render = async function(elem, scope) {
+      var attr, attrComponent, attributes, clone, component, html, i, j, k, len, len1, myscopes, newscope, node, preId, ref, ref1, textNodes;
+      preId = null;
+      scopes[scope.$id] = scope;
+      scope.$hash = hashObject(scope);
+      scope.$call('bootstrap');
+      html = elem.innerHTML;
+      textNodes = [];
+      attributes = {};
+      ref = elem.childNodes;
+      for (j = 0, len = ref.length; j < len; j++) {
+        node = ref[j];
+        if (node.nodeType === document.TEXT_NODE) {
+          textNodes.push(node.data);
+        }
+      }
+      ref1 = elem.getAttributeNames();
+      for (k = 0, len1 = ref1.length; k < len1; k++) {
+        attr = ref1[k];
+        attributes[attr] = elem.getAttribute(attr);
+        if (attrComponent = components[attr.toUpperCase()]) {
+          if (typeof attrComponent.pre === 'function') {
+            myscopes = (await attrComponent.pre(scope, elem, getProps(elem)));
+          }
+          if (typeof myscopes !== 'undefined') {
+            elem.removeAttribute(attr);
+            preId = 'PREX:' + makeId(elem);
+            if (myscopes) {
+              if (myscopes.length) {
+                i = myscopes.length;
+                while (i-- > 0) {
+                  clone = elem.cloneNode();
+                  clone.innerHTML = elem.innerHTML;
+                  elem.parentNode.insertBefore(clone, elem.nextSibling);
+                  render(clone, myscopes[i]);
+                }
+                elem.parentNode.removeChild(elem);
+              } else {
+                if (myscopes.length === 0) {
+                  elem.parentNode.removeChild(elem);
+                }
+              }
+            }
+          }
+          //return#check this
+          elem.setAttribute('checkattrs', true);
+        }
+      }
+      if (component = components[elem.tagName]) {
+        newscope = Scope(scope);
+        scope = newscope;
+        scopes[scope.$id] = scope;
+        if (component.controller) {
+          component.controller(scope, elem);
+        }
+        scope.$hash = hashObject(scope);
+        elem.innerHTML = component.template ? component.template : html;
+        elem.innerHTML = elem.innerHTML.replace('<children></children>', html);
+      }
+      elements.push({
+        id: preId || makeId(elem),
+        elem: elem,
+        scope: scope.$id,
+        html: html,
+        textNodes: textNodes,
+        attributes: attributes
+      });
+      return (await renderChildren(elem, scope));
+    };
+    preRenderChildren = async function(elem, root, preElements) {
+      var child, children, j, k, len, len1, ref, results;
+      children = [];
+      ref = elem.children;
+      for (j = 0, len = ref.length; j < len; j++) {
+        child = ref[j];
+        children.push(child);
+      }
+      results = [];
+      for (k = 0, len1 = children.length; k < len1; k++) {
+        child = children[k];
+        results.push((await preRender(child, root, 0, preElements)));
+      }
+      return results;
+    };
+    preRender = async function(elem, root, index, preElements) {
+      var attr, attrComponent, attributes, clone, component, html, i, id, j, len, myscopes, preId, realElem, ref, scope;
+      id = makeId(elem, root);
+      preId = 'PREX:' + id;
+      html = elem.innerHTML;
+      attributes = {};
+      //get scope using id
+      realElem = elements.filter(function(myelem) {
+        return (myelem.id === id) || (myelem.id === preId);
+      })[index];
+      scope = scopes[realElem != null ? realElem.scope : void 0];
+      if (!(realElem || scope)) {
+        preElements.push({
+          id: 'UNKNOWN@' + id
+        });
+        return;
+      }
+      ref = elem.getAttributeNames();
+      //get .pre scopes
+      for (j = 0, len = ref.length; j < len; j++) {
+        attr = ref[j];
+        attributes[attr] = elem.getAttribute(attr);
+        if (attrComponent = components[attr.toUpperCase()]) {
+          if (typeof attrComponent.pre === 'function') {
+            myscopes = (await attrComponent.pre(scope, elem, getProps(elem)));
+          }
+          if (typeof myscopes !== 'undefined') {
+            if (myscopes) {
+              if (myscopes.length) {
+                i = myscopes.length;
+                while (i-- > 0) {
+                  myscopes[i].$parent.$children.splice(myscopes[i].$parent.$children.indexOf(myscopes[i], 1));
+                  clone = elem.cloneNode();
+                  clone.innerHTML = elem.innerHTML;
+                  clone.removeAttribute(attr);
+                  elem.parentNode.insertBefore(clone, elem.nextSibling);
+                  await preRender(clone, root, i - 1, preElements);
+                }
+                elem.parentNode.removeChild(elem);
+              } else {
+                if (myscopes.length === 0) {
+                  preElements.push({
+                    id: 'UNKNOWN@H1:H1@' + makeId(elem.parentNode, root)
+                  });
+                  elem.parentNode.removeChild(elem);
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
+      //  preRender pre stuff
+      //get component
+      if (component = components[elem.tagName]) {
+        elem.innerHTML = component.template ? component.template : html;
+        elem.innerHTML = elem.innerHTML.replace('<children></children>', html);
+      }
+      //render component
+      //push to preElements
+      preElements.push({
+        id: id
+      });
+      //preRenderChildren
+      return (await preRenderChildren(elem, root, preElements));
+    };
+    fillVars = function() {
+      var i, j, len, name, node, ref, results, val;
+      i = elements.length;
+      results = [];
+      while (i-- > 0) {
+        ref = elements[i].elem.childNodes;
+        for (j = 0, len = ref.length; j < len; j++) {
+          node = ref[j];
+          if (node.nodeType === document.TEXT_NODE && /\{\{/.test(node.data)) {
+            node.replaceWith(fillTemplate(node.data, scopes[elements[i].scope]));
+          }
+        }
+        results.push((function() {
+          var k, len1, ref1, results1;
+          ref1 = elements[i].elem.getAttributeNames();
+          results1 = [];
+          for (k = 0, len1 = ref1.length; k < len1; k++) {
+            name = ref1[k];
+            if (/\{\{/.test((val = elements[i].elem.getAttribute(name)))) {
+              results1.push(elements[i].elem.setAttribute(name, fillTemplate(val, scopes[elements[i].scope])));
+            } else {
+              results1.push(void 0);
+            }
+          }
+          return results1;
+        })());
+      }
+      return results;
+    };
+    checkAttrs = function() {
+      var attr, attrComponent, attrFn, elem, j, len, results;
+      results = [];
+      for (j = 0, len = elements.length; j < len; j++) {
+        elem = elements[j];
+        if (elem.elem.getAttribute('checkattrs')) {
+          elem.elem.removeAttribute('checkattrs');
+          results.push((function() {
+            var k, len1, ref, results1;
+            ref = elem.elem.getAttributeNames();
+            results1 = [];
+            for (k = 0, len1 = ref.length; k < len1; k++) {
+              attr = ref[k];
+              if (attrComponent = components[attr.toUpperCase()]) {
+                attrFn = attrComponent.post || attrComponent;
+                if (typeof attrFn === 'function') {
+                  attrFn(scopes[elem.scope], elem.elem, getProps(elem.elem));
+                }
+                results1.push(elem.elem.removeAttribute(attr));
+              } else {
+                results1.push(void 0);
+              }
+            }
+            return results1;
+          })());
+        } else {
+          results.push(void 0);
+        }
+      }
+      return results;
+    };
+    return {
+      render: async function(elem, scope) {
+        if (!bootstrapped) {
+          await callbacks.$call('bootstrap');
+          bootstrapped = true;
+        }
+        elem = elem || document.querySelector('[app=' + appName + ']');
+        rootElem = rootElem || elem;
+        scope = scope || Scope();
+        await render(elem, scope);
+        await fillVars();
+        await checkAttrs();
+        return callbacks.$call('rendered');
+      },
+      $renderChildren: async function(elem, scope) {
+        await renderChildren(elem, scope);
+        await fillVars();
+        await checkAttrs();
+        return callbacks.$call('rendered');
+      },
+      component: function(nameOrObj, fn) {
+        var name;
+        if (typeof nameOrObj === 'object') {
+          for (name in nameOrObj) {
+            fn = nameOrObj[name];
+            components[name.toUpperCase()] = fn(this);
+          }
+        } else {
+          components[nameOrObj.toUpperCase()] = fn(this);
+        }
+        return this;
+      },
+      Scope: Scope,
+      Callbacks: Callbacks,
+      $getComponents: function() {
+        return components;
+      },
+      $getElements: function() {
+        return elements;
+      },
+      $getServices: function() {
+        return services;
+      },
+      $getScopes: function() {
+        return scopes;
+      },
+      $eval: evalInContext,
+      $getProps: getProps,
+      $teardown: teardown,
+      $teardownChildren: teardownChildren,
+      $on: callbacks.$on,
+      $off: callbacks.$off,
+      $hash: hash,
+      $hashObject: hashObject,
+      $makeId: makeId,
+      $getService: function(name) {
+        var component, service;
+        if (service = services[name]) {
+          return service.fn;
+        } else if (component = components[name.toUpperCase()]) {
+          services[name] = {
+            fn: (component.service || component)(),
+            scopes: []
+          };
+          return services[name].fn;
+        }
+        return null;
+      },
+      $addClass: function(elem, classNames) {
+        var className, j, len;
+        if (typeof classNames === 'string') {
+          classNames = [classNames];
+        }
+        for (j = 0, len = classNames.length; j < len; j++) {
+          className = classNames[j];
+          this.$removeClass(elem, className);
+          elem.className += ' ' + className;
+        }
+        return null;
+      },
+      $removeClass: function(elem, classNames) {
+        var className, j, len, r;
+        if (typeof classNames === 'string') {
+          classNames = [classNames];
+        }
+        for (j = 0, len = classNames.length; j < len; j++) {
+          className = classNames[j];
+          r = new RegExp('\\s*\\b' + className + '\\b', 'g');
+          elem.className = elem.className.replace(r, '');
+        }
+        return null;
+      }
+    };
+  };
+
+  module.exports = Yma;
+
+}).call(this);

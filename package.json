@@ -1,10 +1,9 @@
 {
   "name": "yma",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "a fun, lightweight frontend framework",
   "main": "dist/main.js",
   "scripts": {
-    "test": "node build/test.js",
     "build": "webpack --mode production"
   },
   "repository": {
@@ -14,11 +13,6 @@
   "author": "ndxbxrme",
   "license": "MIT",
   "homepage": "https://github.com/ndxbxrme/yma",
-  "devDependencies": {
-    "coffee-loader": "^0.9.0",
-    "coffeescript": "^2.5.1",
-    "webpack": "^4.41.5",
-    "webpack-cli": "^3.3.10"
-  },
+  "devDependencies": {},
   "dependencies": {}
 }
