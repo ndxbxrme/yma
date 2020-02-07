@@ -1,10 +1,10 @@
 {
   "name": "yma",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "a fun, lightweight frontend framework",
   "main": "dist/main.js",
   "scripts": {
-    "build": "webpack --mode production"
+    "build": "coffee -c -m -o dist/main.js src/index.coffee"
   },
   "repository": {
     "type": "git",

@@ -26,8 +26,28 @@ Callbacks = ->
     if callbacks[name]
       for fn in callbacks[name]
         await fn data
+Environment = ->
+  #from headjs
+  ua = navigator.userAgent.toLowerCase()
+  mobile = /mobile|android|kindle|silk|midp|phone|(windows .+arm|touch)/.test(ua)
+  ua = /(chrome|firefox)[ \/]([\w.]+)/.exec(ua) or /(iphone|ipad|ipod)(?:.*version)?[ \/]([\w.]+)/.exec(ua) or /(android)(?:.*version)?[ \/]([\w.]+)/.exec(ua) or /(webkit|opera)(?:.*version)?[ \/]([\w.]+)/.exec(ua) or /(msie) ([\w.]+)/.exec(ua) or /(trident).+rv:(\w.)+/.exec(ua) or []
+  browser = ua[1]
+  switch browser
+    when 'msie', 'trident' then 'ie'
+    when 'ipod', 'ipad', 'iphone' then 'ios'
+    when 'webkit' then 'safari'
+  mobile: mobile
+  browser: browser
+  version: ua[2]
 Yma = (appName) ->
   rootElem = null
+  components = {}
+  elements = []
+  scopes = {}
+  services = {}
+  environment = Environment()
+  callbacks = Callbacks()
+  bootstrapped = false
   makeId = (node, root) ->
     root = root or rootElem
     return 'root' if node is root
@@ -44,20 +64,25 @@ Yma = (appName) ->
     try
       (new Function("with(this) {return #{str}}"))
       .call context
+  offset = (node) ->
+    nodeOffset =  x: 0, y: 0, w: node.offsetWidth, h: node.offsetHeight
+    while node.parentNode
+      nodeOffset.x += node.offsetLeft
+      nodeOffset.y += node.offsetTop
+      node = node.parentNode
+    nodeOffset
   fillTemplate = (template, scope) ->
     template.replace /\{\{(.+?)\}\}/g, (all, expression) ->
-      evalInContext(expression, scope) or ''
-  components = {}
-  elements = []
-  scopes = {}
-  services = {}
-  callbacks = Callbacks()
-  bootstrapped = false
-  mergeScopes = (scope, merge) ->
+      if typeof(result = evalInContext expression, scope) is 'undefined'
+        ''
+      else
+        result
+  mergeScopes = (scope, merge, protectedFields) ->
+    protectedFields = protectedFields or []
     for key, val of merge
-      if not /^\$/.test key
+      if not protectedFields.includes key
         scope[key] = val
-  updateScopes = ->
+  cleanupScopes = ->
     for id, scope of scopes
       scopeElems = elements.filter (element) -> element.scope is id
       if scopeElems.length is 0
@@ -69,13 +94,137 @@ Yma = (appName) ->
     r = new RegExp id + '$'
     elements = elements.filter (element) ->
       not r.test element.id
-    await updateScopes()
+    await cleanupScopes()
   teardownChildren = (id) ->
     r = new RegExp '.+' + id + '$'
     elements = elements.filter (element) ->
       not r.test element.id
-    await updateScopes()
-
+    await cleanupScopes()
+  updateScopes = (updatedScopes) ->
+    index = 0
+    while updatedScopes.length > index + 1
+      i = updatedScopes.length
+      while i-- > index
+        if updatedScopes[i].$isDescendantOf updatedScopes[0]
+          updatedScopes.splice i, 1
+          continue
+        if updatedScopes[i].$isAncestorOf updatedScopes[0]
+          updatedScopes[0] = updatedScopes[i]
+          updatedScopes.splice i, 1
+          continue
+      index++
+    updateScope = (scope, changedVars) ->
+      myhash = hashObject scope
+      for key, val of myhash
+        if val isnt scope.$hash?[key]
+          if typeof(changedVars[key]) isnt 'undefined'
+            changedVars[key] = scope[key]
+        else
+          if typeof(changedVars[key]) isnt 'undefined'
+            scope[key] = changedVars[key]
+      scope.$hash = myhash
+      for childScope in scope.$children
+        updateScope childScope, changedVars
+    preRoot = document.createElement 'div'
+    preElements = []
+    realRoot = elements[0]
+    preRoot.innerHTML = realRoot.html
+    await preRender preRoot, preRoot, 0, preElements
+    unknowns = preElements.filter (element) -> /^UNKNOWN@/.test(element.id)
+    elemsToUpdate = []
+    unknowns.forEach (unknown) ->
+      parentId = unknown.id.replace /UNKNOWN@\w+:[\w@]+@/, ''
+      elemsToUpdate.push parentId if not elemsToUpdate.includes parentId
+    for elemId in elemsToUpdate
+      element = elements.filter((element) -> element.id is elemId)[0]
+      if element
+        scope = scopes[element.scope]
+        await teardownChildren elemId
+        element.elem.innerHTML = element.html
+        await renderChildren element.elem, scope
+    reset = (scope) ->
+      elemsToReset = elements.filter (element) ->
+        element.scope is scope.$id
+      for elem in elemsToReset
+        t = 0
+        for node in elem.elem.childNodes
+          if node.nodeType is document.TEXT_NODE
+            node.replaceWith elem.textNodes[t++] or ''
+        for name, val of elem.attributes
+          elem.elem.setAttribute name, val
+      reset childScope for childScope in scope.$children
+    i = updatedScopes.length
+    while i-- > 0
+      updateScope updatedScopes[i], {}
+      reset updatedScopes[i]
+      await updatedScopes[i].$callChildren 'update'
+    await fillVars()
+    await checkAttrs()
+    preRoot = null
+    return
+  scopeVar = (op, path, value, scope) ->
+    myvar = evalInContext path, scope
+    arr = []
+    splitPoints = []
+    inside = null
+    lookingFor = null
+    level = 0
+    for letter, i in path.split ''
+      if inside
+        if letter is lookingFor
+          level--
+          if level is 0
+            Object.assign splitPoints[splitPoints.length-1],
+              endIndex: i
+              endPath: path.substr 0, i + 1
+            inside = null
+            lookingFor = null
+        else if letter is inside
+          level++
+      else
+        if letter is '['
+          level++
+          inside = '['
+          lookingFor = ']'
+          splitPoints.push
+            type: inside + lookingFor
+            index: i
+            path: path.substr 0, i
+        else if letter is '('
+          level++
+          inside = '('
+          lookingFor = ')'
+          splitPoints.push
+            type: inside + lookingFor
+            index: i
+            path: path.substr 0, i
+        else if letter is '.'
+          splitPoints.push
+            type: 'object'
+            index: i
+            path: path.substr 0, i
+    myvar = null
+    for sp in splitPoints
+      if sp.type is 'object'
+        myvar = evalInContext sp.path, scope
+        if typeof(myvar) is 'undefined'
+          myvar = evalInContext 'this.' + sp.path + '={}', scope
+      if sp.type is '[]'
+        myvar = evalInContext sp.endPath, scope
+        if typeof(myvar) is 'undefined'
+          myvar = evalInContext 'this.' + sp.path + '=[]', scope
+    lastPoint = splitPoints[splitPoints.length - 1]
+    lastIndex = if lastPoint then (lastPoint.lastIndex or lastPoint.index) + 1 else 0
+    field = path.substr lastIndex
+    if op is 'get'
+      return (myvar or scope)[field]
+    else
+      (myvar or scope)[field] = value
+    value
+  setScopeVar = (path, value, scope) ->
+    scopeVar 'set', path, value, scope
+  getScopeVar = (path, scope) ->
+    scopeVar 'get', path, null, scope
   Scope = (merge) ->
     scopeCallbacks = Callbacks()
     timeouts = []
@@ -84,7 +233,9 @@ Yma = (appName) ->
       $id: ogid()
       $children: []
       $parent: null
+      $environment: environment
       $update: (updates, hard) ->
+        console.log 'update called'
         myscope = @
         while myscope.$parent
           for key of updates
@@ -97,67 +248,7 @@ Yma = (appName) ->
 
           myscope = myscope.$parent
         updatedScopes = Object.values(scopes).filter (scope) -> (JSON.stringify(scope.$hash) isnt JSON.stringify(hashObject scope))
-        index = 0
-        while updatedScopes.length > index + 1
-          i = updatedScopes.length
-          while i-- > index
-            if updatedScopes[i].$isDescendantOf updatedScopes[0]
-              updatedScopes.splice i, 1
-              continue
-            if updatedScopes[i].$isAncestorOf updatedScopes[0]
-              updatedScopes[0] = updatedScopes[i]
-              updatedScopes.splice i, 1
-              continue
-          index++
-        updateScope = (scope, changedVars) ->
-          myhash = hashObject scope
-          for key, val of myhash
-            if val isnt scope.$hash?[key]
-              if typeof(changedVars[key]) isnt 'undefined'
-                changedVars[key] = scope[key]
-            else
-              if typeof(changedVars[key]) isnt 'undefined'
-                scope[key] = changedVars[key]
-          scope.$hash = myhash
-          for childScope in scope.$children
-            updateScope childScope, changedVars
-        preRoot = document.createElement 'div'
-        preElements = []
-        realRoot = elements[0]
-        preRoot.innerHTML = realRoot.html
-        await preRender preRoot, preRoot, 0, preElements
-        unknowns = preElements.filter (element) -> /^UNKNOWN@/.test(element.id)
-        elemsToUpdate = []
-        unknowns.forEach (unknown) ->
-          parentId = unknown.id.replace /UNKNOWN@\w+:[\w@]+@/, ''
-          elemsToUpdate.push parentId if not elemsToUpdate.includes parentId
-        for elemId in elemsToUpdate
-          element = elements.filter((element) -> element.id is elemId)[0]
-          if element
-            scope = scopes[element.scope]
-            await teardownChildren elemId
-            element.elem.innerHTML = element.html
-            await renderChildren element.elem, scope
-        reset = (scope) ->
-          elemsToReset = elements.filter (element) ->
-            element.scope is scope.$id
-          for elem in elemsToReset
-            t = 0
-            for node in elem.elem.childNodes
-              if node.nodeType is document.TEXT_NODE
-                node.replaceWith elem.textNodes[t++] or ''
-            for name, val of elem.attributes
-              elem.elem.setAttribute name, val
-          reset childScope for childScope in scope.$children
-        i = updatedScopes.length
-        while i-- > 0
-          updateScope updatedScopes[i], {}
-          reset updatedScopes[i]
-          await updatedScopes[i].$callChildren 'update'
-        await fillVars()
-        await checkAttrs()
-        preRoot = null
-        return
+        await updateScopes updatedScopes
       $use: (name) ->
         if service = services[name]
           @[name] = service.fn
@@ -175,7 +266,7 @@ Yma = (appName) ->
       $callChildren: (name, data) ->
         await scopeCallbacks.$call name, data
         for childScope in @.$children
-          await childScope.$callChildren name, data
+          await childScope.$callChildren name, data if childScope #check this
         null
       $isDescendantOf: (scope) ->
         return false if scope.$id is @.$id
@@ -192,6 +283,7 @@ Yma = (appName) ->
             return true if check childScope
           false
         check scope
+      $offset: offset
       $timeout: (fn, delay) ->
         if timeouts.length is 0
           scopeCallbacks.$on 'teardown', ->
@@ -204,11 +296,20 @@ Yma = (appName) ->
             for interval in intervals
               window.clearTimeout interval
         intervals.push window.setTimeout fn, delay
+      $addEventListeners: (elem, listeners, fn) ->
+        if typeof(listeners) is 'string'
+          listeners = [listeners]
+        for listener in listeners
+          elem.addEventListener listener, fn
+        @.$on 'teardown', ->
+          for listener in listeners
+            elem.removeEventListener listener, fn
     if merge and merge.$id
       merge.$children.push newscope
       newscope.$parent = merge
-    mergeScopes newscope, merge
+    mergeScopes newscope, merge, Object.keys(newscope)
     newscope
+
   getProps = (elem) ->
     myattrs = {}
     elem.getAttributeNames().forEach (name) -> myattrs[name] = elem.getAttribute(name)
@@ -221,6 +322,7 @@ Yma = (appName) ->
     preId = null
     scopes[scope.$id] = scope
     scope.$hash = hashObject scope
+    scope.$phase = 'render'
     scope.$call 'bootstrap'
     html = elem.innerHTML
     textNodes = []
@@ -263,7 +365,6 @@ Yma = (appName) ->
       textNodes: textNodes
       attributes: attributes
     await renderChildren elem, scope
-
   preRenderChildren = (elem, root, preElements) ->
     children = []
     children.push child for child in elem.children
@@ -276,6 +377,7 @@ Yma = (appName) ->
     #get scope using id
     realElem = elements.filter((myelem) -> (myelem.id is id) or (myelem.id is preId))[index]
     scope = scopes[realElem?.scope]
+    scope?.$phase = 'prerender'
     if not (realElem or scope)
       preElements.push
         id: 'UNKNOWN@' + id
@@ -314,7 +416,6 @@ Yma = (appName) ->
       id: id
     #preRenderChildren
     await preRenderChildren elem, root, preElements
-
   fillVars = ->
     i = elements.length
     while i-- > 0
@@ -333,6 +434,17 @@ Yma = (appName) ->
             attrFn = attrComponent.post or attrComponent
             attrFn scopes[elem.scope], elem.elem, getProps(elem.elem) if typeof(attrFn) is 'function'
             elem.elem.removeAttribute attr
+
+  getService = (name) ->
+    if service = services[name]
+      return service
+    else if component = components[name.toUpperCase()]
+      services[name] =
+        fn: (component.service or component)()
+        scopes: []
+      return services[name]
+    null
+
   render: (elem, scope) ->
     if not bootstrapped
       await callbacks.$call 'bootstrap'
@@ -367,6 +479,9 @@ Yma = (appName) ->
   $getScopes: ->
     scopes
   $eval: evalInContext
+  $offset: offset
+  $setScopeVar: setScopeVar
+  $getScopeVar: getScopeVar
   $getProps: getProps
   $teardown: teardown
   $teardownChildren: teardownChildren
@@ -375,15 +490,6 @@ Yma = (appName) ->
   $hash: hash
   $hashObject: hashObject
   $makeId: makeId
-  $getService: (name) ->
-    if service = services[name]
-      return service.fn
-    else if component = components[name.toUpperCase()]
-      services[name] =
-        fn: (component.service or component)()
-        scopes: []
-      return services[name].fn
-    null
   $addClass: (elem, classNames) ->
     classNames = [classNames] if typeof(classNames) is 'string'
     for className in classNames
@@ -396,4 +502,7 @@ Yma = (appName) ->
       r = new RegExp '\\s*\\b' + className + '\\b', 'g'
       elem.className = elem.className.replace r, ''
     null
+  $update: (serviceName) ->
+    if service = getService serviceName
+      updateScopes service.scopes
 module.exports = Yma
