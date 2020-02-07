@@ -2,9 +2,9 @@
   "name": "yma",
   "version": "0.0.16",
   "description": "a fun, lightweight frontend framework",
-  "main": "dist/main.js",
+  "main": "dist/index.js",
   "scripts": {
-    "build": "coffee -c -m -o dist/main.js src/index.coffee"
+    "build": "coffee -m -o dist -c src"
   },
   "repository": {
     "type": "git",
