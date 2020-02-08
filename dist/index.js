@@ -821,9 +821,11 @@
           for (name in nameOrObj) {
             fn = nameOrObj[name];
             components[name.toUpperCase()] = fn(this);
+            this.$appendStyles(components[name.toUpperCase()].styles);
           }
         } else {
           components[nameOrObj.toUpperCase()] = fn(this);
+          this.$appendStyles(components[nameOrObj.toUpperCase()].styles);
         }
         return this;
       },
@@ -882,6 +884,15 @@
         if (service = getService(serviceName)) {
           return updateScopes(service.scopes);
         }
+      },
+      $appendStyles: function(stylesText) {
+        var styles;
+        if (!stylesText) {
+          return;
+        }
+        styles = document.createElement('style');
+        styles.innerText = stylesText;
+        return document.querySelector('head').append(styles);
       }
     };
   };
