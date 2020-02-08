@@ -466,8 +466,10 @@ Yma = (appName) ->
     if typeof(nameOrObj) is 'object'
       for name, fn of nameOrObj
         components[name.toUpperCase()] = fn @
+        @.$appendStyles components[name.toUpperCase()].styles
     else
       components[nameOrObj.toUpperCase()] = fn @
+      @.$appendStyles components[nameOrObj.toUpperCase()].styles
     @
   Scope: Scope
   Callbacks: Callbacks
@@ -506,4 +508,10 @@ Yma = (appName) ->
   $update: (serviceName) ->
     if service = getService serviceName
       updateScopes service.scopes
+  $appendStyles: (stylesText) ->
+    return if not stylesText
+    styles = document.createElement 'style'
+    styles.innerText = stylesText
+    document.querySelector 'head'
+    .append styles
 module.exports = Yma
