@@ -72,7 +72,7 @@ There are a couple more ways of declaring components which we'll cover in the AP
 |---------|-----------|  
 |[repeat](https://github.com/ndxbxrme/yma-core#repeat)|Repeats a node or set of nodes for each item in an array  
 |[if](https://github.com/ndxbxrme/yma-core#if)|Conditionally renders a node|
-|[hide](https://github.com/ndxbxrme/yma-core#hide)|Conditionally renders adds the class `.yma-hidden` to a node|
+|[hide](https://github.com/ndxbxrme/yma-core#hide)|Conditionally adds the class `.yma-hidden` to a node|
 |[controller](https://github.com/ndxbxrme/yma-core#controller)|Adds a controller to a node|
 |[model](https://github.com/ndxbxrme/yma-core#model)|Hooks a scoped variable up to an input controller|
 |[press](https://github.com/ndxbxrme/yma-core#press)|Performs an action on click/mousedown|

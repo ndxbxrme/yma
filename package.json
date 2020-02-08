@@ -1,7 +1,7 @@
 {
   "name": "yma",
-  "version": "0.0.16",
-  "description": "a fun, lightweight frontend framework",
+  "version": "0.0.17",
+  "description": "a lightweight frontend framework",
   "main": "dist/index.js",
   "scripts": {
     "build": "coffee -m -o dist -c src"

@@ -235,7 +235,6 @@ Yma = (appName) ->
       $parent: null
       $environment: environment
       $update: (updates, hard) ->
-        console.log 'update called'
         myscope = @
         while myscope.$parent
           for key of updates
@@ -344,12 +343,14 @@ Yma = (appName) ->
                 clone.innerHTML = elem.innerHTML
                 elem.parentNode.insertBefore clone, elem.nextSibling
                 render clone, myscopes[i]
+              elem.innerHTML = ''
               elem.parentNode.removeChild elem
             else
+              elem.innerHTML = ''
               elem.parentNode.removeChild elem if myscopes.length is 0
             #return#check this
         elem.setAttribute 'checkattrs', true
-    if component = components[elem.tagName]
+    if elem.parentNode and component = components[elem.tagName]
       newscope = Scope scope
       scope = newscope
       scopes[scope.$id] = scope

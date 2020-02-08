@@ -401,7 +401,6 @@
         $environment: environment,
         $update: async function(updates, hard) {
           var key, myscope, ref, sharedWithParent, updatedScopes;
-          console.log('update called');
           myscope = this;
           while (myscope.$parent) {
             for (key in updates) {
@@ -604,8 +603,10 @@
                   elem.parentNode.insertBefore(clone, elem.nextSibling);
                   render(clone, myscopes[i]);
                 }
+                elem.innerHTML = '';
                 elem.parentNode.removeChild(elem);
               } else {
+                elem.innerHTML = '';
                 if (myscopes.length === 0) {
                   elem.parentNode.removeChild(elem);
                 }
@@ -616,7 +617,7 @@
           elem.setAttribute('checkattrs', true);
         }
       }
-      if (component = components[elem.tagName]) {
+      if (elem.parentNode && (component = components[elem.tagName])) {
         newscope = Scope(scope);
         scope = newscope;
         scopes[scope.$id] = scope;
