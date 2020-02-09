@@ -1,6 +1,6 @@
 # yma
 
-A very lightweight frontend framework with no external dependencies or affiliations to evil mega-corporations.
+is a very lightweight frontend framework with no external dependencies or affiliations to evil mega-corporations.
 
 ### Benefits
 - No event cycle so no unnecessary processor overhead
