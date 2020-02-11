@@ -87,7 +87,7 @@
   };
 
   Yma = function(appName) {
-    var Scope, bootstrapped, callbacks, checkAttrs, cleanupScopes, components, elements, environment, evalInContext, fillTemplate, fillVars, getProps, getScopeVar, getService, makeId, mergeScopes, offset, preRender, preRenderChildren, render, renderChildren, rootElem, scopeVar, scopes, services, setScopeVar, teardown, teardownChildren, updateScopes;
+    var Scope, bootstrapped, callbacks, checkAttrs, cleanupScopes, components, elements, environment, evalInContext, fillTemplate, fillVars, getElement, getProps, getScopeVar, getService, makeId, mergeScopes, offset, preRender, preRenderChildren, render, renderChildren, rootElem, scopeVar, scopes, services, setScopeVar, teardown, teardownChildren, updateScopes;
     rootElem = null;
     components = {};
     elements = [];
@@ -543,6 +543,13 @@
       mergeScopes(newscope, merge, Object.keys(newscope));
       return newscope;
     };
+    getElement = function(elem) {
+      var id;
+      id = makeId(elem);
+      return elements.filter(function(element) {
+        return element.id === id;
+      })[0];
+    };
     getProps = function(elem) {
       var myattrs;
       myattrs = {};
@@ -567,7 +574,7 @@
       return results;
     };
     render = async function(elem, scope) {
-      var attr, attrComponent, attributes, clone, component, html, i, j, k, len, len1, myscopes, newscope, node, preId, ref, ref1, textNodes;
+      var attr, attrComponent, attributes, clone, component, data, html, i, j, k, len, len1, myscopes, newscope, node, preId, ref, ref1, textNodes;
       preId = null;
       scopes[scope.$id] = scope;
       scope.$hash = hashObject(scope);
@@ -576,6 +583,7 @@
       html = elem.innerHTML;
       textNodes = [];
       attributes = {};
+      data = {};
       ref = elem.childNodes;
       for (j = 0, len = ref.length; j < len; j++) {
         node = ref[j];
@@ -622,7 +630,7 @@
         scope = newscope;
         scopes[scope.$id] = scope;
         if (component.controller) {
-          component.controller(scope, elem);
+          data = component.controller(scope, elem, getProps(elem));
         }
         scope.$hash = hashObject(scope);
         elem.innerHTML = component.template ? component.template : html;
@@ -634,7 +642,8 @@
         scope: scope.$id,
         html: html,
         textNodes: textNodes,
-        attributes: attributes
+        attributes: attributes,
+        data: data
       });
       return (await renderChildren(elem, scope));
     };
@@ -847,6 +856,7 @@
       $offset: offset,
       $setScopeVar: setScopeVar,
       $getScopeVar: getScopeVar,
+      $getElement: getElement,
       $getProps: getProps,
       $teardown: teardown,
       $teardownChildren: teardownChildren,

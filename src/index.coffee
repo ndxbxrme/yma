@@ -309,6 +309,9 @@ Yma = (appName) ->
     mergeScopes newscope, merge, Object.keys(newscope)
     newscope
 
+  getElement = (elem) ->
+    id = makeId elem
+    elements.filter((element) -> element.id is id)[0]
   getProps = (elem) ->
     myattrs = {}
     elem.getAttributeNames().forEach (name) -> myattrs[name] = elem.getAttribute(name)
@@ -326,6 +329,7 @@ Yma = (appName) ->
     html = elem.innerHTML
     textNodes = []
     attributes = {}
+    data = {}
     for node in elem.childNodes
       textNodes.push node.data if node.nodeType is document.TEXT_NODE
     for attr in elem.getAttributeNames()
@@ -354,7 +358,7 @@ Yma = (appName) ->
       newscope = Scope scope
       scope = newscope
       scopes[scope.$id] = scope
-      component.controller scope, elem if component.controller
+      data = component.controller scope, elem, getProps(elem) if component.controller
       scope.$hash = hashObject scope
       elem.innerHTML = if component.template then component.template else html
       elem.innerHTML = elem.innerHTML.replace '<children></children>', html
@@ -365,6 +369,7 @@ Yma = (appName) ->
       html: html
       textNodes: textNodes
       attributes: attributes
+      data: data
     await renderChildren elem, scope
   preRenderChildren = (elem, root, preElements) ->
     children = []
@@ -485,6 +490,7 @@ Yma = (appName) ->
   $offset: offset
   $setScopeVar: setScopeVar
   $getScopeVar: getScopeVar
+  $getElement: getElement
   $getProps: getProps
   $teardown: teardown
   $teardownChildren: teardownChildren
