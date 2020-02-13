@@ -2,4 +2,5 @@ language: node_js
 node_js:
   - '12.14.1'
 before_script:
-  - npm install -g coffeescript nodeunit
+  - npm install -g coffeescript nodeunit webpack webpack-cli
+  - cd test/basic && webpack --node production && cd .
