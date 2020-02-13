@@ -1,6 +1,6 @@
 {
   "name": "yma",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "description": "a lightweight frontend framework",
   "main": "dist/index.js",
   "scripts": {

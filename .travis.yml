@@ -4,3 +4,4 @@ node_js:
 before_script:
   - npm install -g coffeescript nodeunit webpack webpack-cli
   - cd test/basic && webpack --node production && cd ../..
+  - cd test/eval-string && webpack --node production && cd ../..
