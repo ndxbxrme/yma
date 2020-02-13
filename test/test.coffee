@@ -1,10 +1,29 @@
 localServer = require 'local-web-server'
-ws = localServer.create
-  port: 23232
-  directory: 'test'
 puppeteer = require 'puppeteer'
 global.navigator =
   userAgent: 'summat'
+browser = null
+page = null
+ws = null
+makeServer = (path) ->
+  ws = localServer.create
+    port: 23232
+    directory: path
+    spa: 'index.html'
+gotoPage = (path) ->
+  browser = await puppeteer.launch()
+  page = await browser.newPage()
+  await page.goto 'http://localhost:23232/' + (path or '')
+closePage = ->
+  await browser.close()
+  ws.server.close()
+waitForRendered = ->
+  await page.evaluate () ->
+    new Promise (resolve) ->
+      window.app.$on 'rendered', ->
+        resolve()
+      window.app.render()
+
 
 exports.ymaTest =
   "Should make an app": (test) ->
@@ -23,12 +42,22 @@ exports.ymaTest =
         console.log 'controller'
     test.equal typeof(app.$getComponents()['MYCOMPONENT']), 'function'
     test.done()
-  "Shold load a page": (test) ->
-    browser = await puppeteer.launch()
-    page = await browser.newPage()
-    await page.goto 'http://localhost:23232/basic/test-basic.html'
-    setTimeout ->
-      console.log await page.content()
-      await browser.close()
-      test.done()
-      ws.server.close()
+  "Should bootstrap an app": (test) ->
+    makeServer 'test/basic'
+    await gotoPage ''
+    await waitForRendered()
+    elements = await page.evaluate () -> window.app.$getElements()
+    scopes = await page.evaluate () -> window.app.$getScopes()
+    test.equal elements.length, 1
+    test.equal Object.keys(scopes).length, 1
+    test.ok scopes[elements[0].scope]
+    await closePage()
+    test.done()
+  "Should evaluate text": (test) ->
+    makeServer 'test/eval-string'
+    await gotoPage ''
+    await waitForRendered()
+    str = await page.evaluate () -> document.querySelector('app').innerHTML
+    test.equal str, 'Test string'
+    await closePage()
+    test.done()
