@@ -1,4 +1,4 @@
-# yma
+# yma [![Build Status](https://travis-ci.org/ndxbxrme/yma.svg?branch=master)](https://travis-ci.org/ndxbxrme/yma)
 
 is a very lightweight frontend framework with no external dependencies or affiliations to evil mega-corporations.
 
