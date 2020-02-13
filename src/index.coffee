@@ -238,9 +238,10 @@ Yma = (appName) ->
         myscope = @
         while myscope.$parent
           for key of updates
-            if typeof(myscope[key]) isnt 'undefined'
-              sharedWithParent = myscope[key] is myscope.$parent?[key]
-              myscope[key] = updates[key]
+            myprop = getScopeVar key, myscope
+            if typeof(myprop) isnt 'undefined'
+              sharedWithParent = myprop is getScopeVar key, myscope.$parent
+              setScopeVar key, updates[key], myscope
               delete updates[key] if not sharedWithParent
             else
               delete updates[key]
@@ -451,6 +452,7 @@ Yma = (appName) ->
       return services[name]
     null
 
+  appName: appName
   render: (elem, scope) ->
     if not bootstrapped
       await callbacks.$call 'bootstrap'

@@ -400,13 +400,14 @@
         $parent: null,
         $environment: environment,
         $update: async function(updates, hard) {
-          var key, myscope, ref, sharedWithParent, updatedScopes;
+          var key, myprop, myscope, sharedWithParent, updatedScopes;
           myscope = this;
           while (myscope.$parent) {
             for (key in updates) {
-              if (typeof myscope[key] !== 'undefined') {
-                sharedWithParent = myscope[key] === ((ref = myscope.$parent) != null ? ref[key] : void 0);
-                myscope[key] = updates[key];
+              myprop = getScopeVar(key, myscope);
+              if (typeof myprop !== 'undefined') {
+                sharedWithParent = myprop === getScopeVar(key, myscope.$parent);
+                setScopeVar(key, updates[key], myscope);
                 if (!sharedWithParent) {
                   delete updates[key];
                 }
@@ -805,6 +806,7 @@
       return null;
     };
     return {
+      appName: appName,
       render: async function(elem, scope) {
         if (!bootstrapped) {
           await callbacks.$call('bootstrap');
