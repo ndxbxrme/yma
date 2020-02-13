@@ -6,7 +6,7 @@
   "scripts": {
     "build": "coffee -m -o dist -c src",
     "watch": "coffee -mw -o dist -c src",
-    "test": "npx coffee -o test -c test && npx nodeunit test/test.js"
+    "test": "coffee -o test -c test && nodeunit test/test.js"
   },
   "repository": {
     "type": "git",
