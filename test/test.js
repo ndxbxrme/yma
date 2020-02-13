@@ -47,56 +47,53 @@
   };
 
   exports.ymaTest = {
-    "Should make an app": function(test) {
-      var app;
-      app = require('../dist/index')('myApp');
-      test.equal(app.appName, 'myApp', 'Name check');
-      return test.done();
-    },
-    "Should make a scope": function(test) {
-      var app, scope;
-      app = require('../dist/index')('myApp');
-      scope = app.Scope();
-      test.ok(scope.$id);
-      return test.done();
-    },
-    "Should make a component": function(test) {
-      var app;
-      app = require('../dist/index')('myApp');
-      app.component('myComponent', function(app) {
-        return function(scope, elem, props) {
-          return console.log('controller');
-        };
-      });
-      test.equal(typeof (app.$getComponents()['MYCOMPONENT']), 'function');
-      return test.done();
-    },
-    "Should bootstrap an app": async function(test) {
-      var elements, scopes;
-      makeServer('test/basic');
-      await gotoPage('');
-      await waitForRendered();
-      elements = (await page.evaluate(function() {
-        return window.app.$getElements();
-      }));
-      scopes = (await page.evaluate(function() {
-        return window.app.$getScopes();
-      }));
-      test.equal(elements.length, 1);
-      test.equal(Object.keys(scopes).length, 1);
-      test.ok(scopes[elements[0].scope]);
-      await closePage();
-      return test.done();
-    },
-    "Should evaluate text": async function(test) {
+    /*
+    "Should make an app": (test) ->
+      app = require('../dist/index') 'myApp'
+      test.equal app.appName, 'myApp', 'Name check'
+      test.done()
+    "Should make a scope": (test) ->
+      app = require('../dist/index') 'myApp'
+      scope = app.Scope()
+      test.ok scope.$id
+      test.done()
+    "Should make a component": (test) ->
+      app = require('../dist/index') 'myApp'
+      app.component 'myComponent', (app) ->
+        (scope, elem, props) ->
+          console.log 'controller'
+      test.equal typeof(app.$getComponents()['MYCOMPONENT']), 'function'
+      test.done()
+    "Should bootstrap an app": (test) ->
+      makeServer 'test/basic'
+      await gotoPage ''
+      await waitForRendered()
+      elements = await page.evaluate () -> window.app.$getElements()
+      scopes = await page.evaluate () -> window.app.$getScopes()
+      test.equal elements.length, 1
+      test.equal Object.keys(scopes).length, 1
+      test.ok scopes[elements[0].scope]
+      await closePage()
+      test.done()
+    "Should evaluate text": (test) ->
+      makeServer 'test/eval-string'
+      await gotoPage ''
+      await waitForRendered()
+      str = await page.evaluate () -> document.querySelector('app').innerHTML
+      test.equal str, 'Test string'
+      await closePage()
+      test.done()
+    */
+    "Should render app component": async function(test) {
       var str;
-      makeServer('test/eval-string');
+      makeServer('test/app-component');
       await gotoPage('');
       await waitForRendered();
       str = (await page.evaluate(function() {
         return document.querySelector('app').innerHTML;
       }));
-      test.equal(str, 'Test string');
+      console.log('str', str);
+      test.equal(str, '<h1>App component</h1>');
       await closePage();
       return test.done();
     }

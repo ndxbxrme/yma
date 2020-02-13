@@ -824,7 +824,7 @@
         await renderChildren(elem, scope);
         await fillVars();
         await checkAttrs();
-        return callbacks.$call('rendered');
+        return callbacks.$call('renderedChildren');
       },
       component: function(nameOrObj, fn) {
         var name;

@@ -468,7 +468,7 @@ Yma = (appName) ->
     await renderChildren elem, scope
     await fillVars()
     await checkAttrs()
-    callbacks.$call 'rendered'
+    callbacks.$call 'renderedChildren'
   component: (nameOrObj, fn) ->
     if typeof(nameOrObj) is 'object'
       for name, fn of nameOrObj

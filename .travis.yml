@@ -3,5 +3,4 @@ node_js:
   - '12.14.1'
 before_script:
   - npm install -g coffeescript nodeunit webpack webpack-cli
-  - cd test/basic && webpack --node production && cd ../..
-  - cd test/eval-string && webpack --node production && cd ../..
+  - for d in ./test/*/ ; do (cd "$d" && webpack --node production); done

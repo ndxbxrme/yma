@@ -61,3 +61,12 @@ exports.ymaTest =
     test.equal str, 'Test string'
     await closePage()
     test.done()
+  "Should render app component": (test) ->
+    makeServer 'test/app-component'
+    await gotoPage ''
+    await waitForRendered()
+    str = await page.evaluate () -> document.querySelector('app').innerHTML
+    console.log 'str', str
+    test.equal str, '<h1>App component</h1>'
+    await closePage()
+    test.done()
