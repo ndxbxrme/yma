@@ -66,7 +66,22 @@ exports.ymaTest =
     await gotoPage ''
     await waitForRendered()
     str = await page.evaluate () -> document.querySelector('app').innerHTML
-    console.log 'str', str
     test.equal str, '<h1>App component</h1>'
+    await closePage()
+    test.done()
+  "Should render app controller": (test) ->
+    makeServer 'test/controller'
+    await gotoPage ''
+    await waitForRendered()
+    str = await page.evaluate () -> document.querySelector('app').innerHTML
+    test.equal str, '<h1>APP CONTROLLER</h1>'
+    await closePage()
+    test.done()
+  "Should render sub components": (test) ->
+    makeServer 'test/sub-component'
+    await gotoPage ''
+    await waitForRendered()
+    str = await page.evaluate () -> document.querySelector('app').innerHTML
+    test.equal str, '<div>APP CONTROLLER<sub-component thing="thing1"><h1>THING1</h1></sub-component><sub-component thing="thing2"><h1>THING2</h1></sub-component></div>'
     await closePage()
     test.done()

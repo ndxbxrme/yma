@@ -6,7 +6,7 @@
   "scripts": {
     "build": "coffee -m -o dist -c src",
     "watch": "coffee -mw -o dist -c src",
-    "build-tests": "coffee -o test -c test",
+    "build-tests": "coffee -o test -c test && cd test && for /d /r %i in (*) do @cd %i && npx webpack --mode production",
     "test": "coffee -o test -c test && nodeunit test/test.js"
   },
   "repository": {

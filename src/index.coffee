@@ -72,10 +72,13 @@ Yma = (appName) ->
       node = node.parentNode
     nodeOffset
   fillTemplate = (template, scope) ->
+    console.log 'ft', template
     template.replace /\{\{(.+?)\}\}/g, (all, expression) ->
+      console.log 'fill template', expression, scope
       if typeof(result = evalInContext expression, scope) is 'undefined'
         ''
       else
+        console.log 'returning', result
         result
   mergeScopes = (scope, merge, protectedFields) ->
     protectedFields = protectedFields or []
@@ -313,9 +316,9 @@ Yma = (appName) ->
   getElement = (elem) ->
     id = makeId elem
     elements.filter((element) -> element.id is id)[0]
-  getProps = (elem) ->
+  getProps = (elem, scope) ->
     myattrs = {}
-    elem.getAttributeNames().forEach (name) -> myattrs[name] = elem.getAttribute(name)
+    elem.getAttributeNames().forEach (name) -> myattrs[name] = if scope then fillTemplate(elem.getAttribute(name), scope) else elem.getAttribute(name)
     myattrs
   renderChildren = (elem, scope) ->
     children = []
@@ -336,7 +339,7 @@ Yma = (appName) ->
     for attr in elem.getAttributeNames()
       attributes[attr] = elem.getAttribute attr
       if attrComponent = components[attr.toUpperCase()]
-        myscopes = await attrComponent.pre scope, elem, getProps(elem) if typeof(attrComponent.pre) is 'function'
+        myscopes = await attrComponent.pre scope, elem, getProps(elem, scope) if typeof(attrComponent.pre) is 'function'
         if typeof(myscopes) isnt 'undefined'
           elem.removeAttribute attr
           preId = 'PREX:' + makeId elem
@@ -359,7 +362,7 @@ Yma = (appName) ->
       newscope = Scope scope
       scope = newscope
       scopes[scope.$id] = scope
-      data = component.controller scope, elem, getProps(elem) if component.controller
+      data = component.controller scope, elem, getProps(elem, scope.$parent) if component.controller
       scope.$hash = hashObject scope
       elem.innerHTML = if component.template then component.template else html
       elem.innerHTML = elem.innerHTML.replace '<children></children>', html
@@ -426,12 +429,16 @@ Yma = (appName) ->
   fillVars = ->
     i = elements.length
     while i-- > 0
-      for node in elements[i].elem.childNodes
-        if node.nodeType is document.TEXT_NODE and /\{\{/.test node.data
-          node.replaceWith fillTemplate node.data, scopes[elements[i].scope]
       for name in elements[i].elem.getAttributeNames()
         if /\{\{/.test (val = elements[i].elem.getAttribute(name))
           elements[i].elem.setAttribute name, fillTemplate(val, scopes[elements[i].scope])
+          console.log 'attr', elements[i].elem.getAttribute name
+    i = elements.length
+    while i-- > 0
+      for node in elements[i].elem.childNodes
+        if node.nodeType is document.TEXT_NODE and /\{\{/.test node.data
+          console.log node.data
+          node.replaceWith fillTemplate node.data, scopes[elements[i].scope]
   checkAttrs = ->
     for elem in elements
       if elem.elem.getAttribute 'checkattrs'
@@ -461,6 +468,7 @@ Yma = (appName) ->
     rootElem = rootElem or elem
     scope = scope or Scope()
     await render elem, scope
+    debugger
     await fillVars()
     await checkAttrs()
     callbacks.$call 'rendered'

@@ -135,11 +135,14 @@
       return nodeOffset;
     };
     fillTemplate = function(template, scope) {
+      console.log('ft', template);
       return template.replace(/\{\{(.+?)\}\}/g, function(all, expression) {
         var result;
+        console.log('fill template', expression, scope);
         if (typeof (result = evalInContext(expression, scope)) === 'undefined') {
           return '';
         } else {
+          console.log('returning', result);
           return result;
         }
       });
@@ -551,11 +554,11 @@
         return element.id === id;
       })[0];
     };
-    getProps = function(elem) {
+    getProps = function(elem, scope) {
       var myattrs;
       myattrs = {};
       elem.getAttributeNames().forEach(function(name) {
-        return myattrs[name] = elem.getAttribute(name);
+        return myattrs[name] = scope ? fillTemplate(elem.getAttribute(name), scope) : elem.getAttribute(name);
       });
       return myattrs;
     };
@@ -598,7 +601,7 @@
         attributes[attr] = elem.getAttribute(attr);
         if (attrComponent = components[attr.toUpperCase()]) {
           if (typeof attrComponent.pre === 'function') {
-            myscopes = (await attrComponent.pre(scope, elem, getProps(elem)));
+            myscopes = (await attrComponent.pre(scope, elem, getProps(elem, scope)));
           }
           if (typeof myscopes !== 'undefined') {
             elem.removeAttribute(attr);
@@ -631,7 +634,7 @@
         scope = newscope;
         scopes[scope.$id] = scope;
         if (component.controller) {
-          data = component.controller(scope, elem, getProps(elem));
+          data = component.controller(scope, elem, getProps(elem, scope.$parent));
         }
         scope.$hash = hashObject(scope);
         elem.innerHTML = component.template ? component.template : html;
@@ -735,23 +738,28 @@
     fillVars = function() {
       var i, j, len, name, node, ref, results, val;
       i = elements.length;
-      results = [];
       while (i-- > 0) {
-        ref = elements[i].elem.childNodes;
+        ref = elements[i].elem.getAttributeNames();
         for (j = 0, len = ref.length; j < len; j++) {
-          node = ref[j];
-          if (node.nodeType === document.TEXT_NODE && /\{\{/.test(node.data)) {
-            node.replaceWith(fillTemplate(node.data, scopes[elements[i].scope]));
+          name = ref[j];
+          if (/\{\{/.test((val = elements[i].elem.getAttribute(name)))) {
+            elements[i].elem.setAttribute(name, fillTemplate(val, scopes[elements[i].scope]));
+            console.log('attr', elements[i].elem.getAttribute(name));
           }
         }
+      }
+      i = elements.length;
+      results = [];
+      while (i-- > 0) {
         results.push((function() {
           var k, len1, ref1, results1;
-          ref1 = elements[i].elem.getAttributeNames();
+          ref1 = elements[i].elem.childNodes;
           results1 = [];
           for (k = 0, len1 = ref1.length; k < len1; k++) {
-            name = ref1[k];
-            if (/\{\{/.test((val = elements[i].elem.getAttribute(name)))) {
-              results1.push(elements[i].elem.setAttribute(name, fillTemplate(val, scopes[elements[i].scope])));
+            node = ref1[k];
+            if (node.nodeType === document.TEXT_NODE && /\{\{/.test(node.data)) {
+              console.log(node.data);
+              results1.push(node.replaceWith(fillTemplate(node.data, scopes[elements[i].scope])));
             } else {
               results1.push(void 0);
             }
@@ -816,6 +824,7 @@
         rootElem = rootElem || elem;
         scope = scope || Scope();
         await render(elem, scope);
+        debugger;
         await fillVars();
         await checkAttrs();
         return callbacks.$call('rendered');
