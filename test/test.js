@@ -38,7 +38,7 @@
   waitForRendered = async function() {
     return (await page.evaluate(function() {
       return new Promise(function(resolve) {
-        window.app.$on('rendered', function() {
+        window.app.$once('rendered', function() {
           return resolve();
         });
         return window.app.render();

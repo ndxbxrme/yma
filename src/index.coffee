@@ -16,9 +16,17 @@ hashObject = (obj) ->
   hashed
 Callbacks = ->
   callbacks = {}
+  toRemove = []
   $on: (name, fn) ->
     callbacks[name] = callbacks[name] or []
     callbacks[name].push fn
+  $once: (name, fn) ->
+    callbacks[name] = callbacks[name] or []
+    onceFn = (data) ->
+      output = await fn data
+      toRemove.push onceFn
+      output
+    callbacks[name].push onceFn
   $off: (name, fn) ->
     callbacks[name] = callbacks[name] or []
     callbacks[name].splice callbacks[name].indexOf(fn), 1
@@ -26,6 +34,9 @@ Callbacks = ->
     if callbacks[name]
       for fn in callbacks[name]
         await fn data
+    for fn in toRemove
+      callbacks[name].splice callbacks[name].indexOf(fn), 1
+    toRemove = []
 Environment = ->
   #from headjs
   ua = navigator.userAgent.toLowerCase()
@@ -264,6 +275,7 @@ Yma = (appName) ->
         @.$on 'teardown', ->
           services[name].scopes.splice services[name].scopes.indexOf(@.$id), 1
       $on: scopeCallbacks.$on
+      $once: scopeCallbacks.$once
       $off: scopeCallbacks.$off
       $call: scopeCallbacks.$call
       $callChildren: (name, data) ->
@@ -468,7 +480,6 @@ Yma = (appName) ->
     rootElem = rootElem or elem
     scope = scope or Scope()
     await render elem, scope
-    debugger
     await fillVars()
     await checkAttrs()
     callbacks.$call 'rendered'
@@ -505,6 +516,7 @@ Yma = (appName) ->
   $teardown: teardown
   $teardownChildren: teardownChildren
   $on: callbacks.$on
+  $once: callbacks.$once
   $off: callbacks.$off
   $hash: hash
   $hashObject: hashObject

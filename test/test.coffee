@@ -20,7 +20,7 @@ closePage = ->
 waitForRendered = ->
   await page.evaluate () ->
     new Promise (resolve) ->
-      window.app.$on 'rendered', ->
+      window.app.$once 'rendered', ->
         resolve()
       window.app.render()
 

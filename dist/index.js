@@ -33,28 +33,43 @@
   };
 
   Callbacks = function() {
-    var callbacks;
+    var callbacks, toRemove;
     callbacks = {};
+    toRemove = [];
     return {
       $on: function(name, fn) {
         callbacks[name] = callbacks[name] || [];
         return callbacks[name].push(fn);
+      },
+      $once: function(name, fn) {
+        var onceFn;
+        callbacks[name] = callbacks[name] || [];
+        onceFn = async function(data) {
+          var output;
+          output = (await fn(data));
+          toRemove.push(onceFn);
+          return output;
+        };
+        return callbacks[name].push(onceFn);
       },
       $off: function(name, fn) {
         callbacks[name] = callbacks[name] || [];
         return callbacks[name].splice(callbacks[name].indexOf(fn), 1);
       },
       $call: async function(name, data) {
-        var fn, j, len, ref, results;
+        var fn, j, k, len, len1, ref;
         if (callbacks[name]) {
           ref = callbacks[name];
-          results = [];
           for (j = 0, len = ref.length; j < len; j++) {
             fn = ref[j];
-            results.push((await fn(data)));
+            await fn(data);
           }
-          return results;
         }
+        for (k = 0, len1 = toRemove.length; k < len1; k++) {
+          fn = toRemove[k];
+          callbacks[name].splice(callbacks[name].indexOf(fn), 1);
+        }
+        return toRemove = [];
       }
     };
   };
@@ -442,6 +457,7 @@
           });
         },
         $on: scopeCallbacks.$on,
+        $once: scopeCallbacks.$once,
         $off: scopeCallbacks.$off,
         $call: scopeCallbacks.$call,
         $callChildren: async function(name, data) {
@@ -824,7 +840,6 @@
         rootElem = rootElem || elem;
         scope = scope || Scope();
         await render(elem, scope);
-        debugger;
         await fillVars();
         await checkAttrs();
         return callbacks.$call('rendered');
@@ -872,6 +887,7 @@
       $teardown: teardown,
       $teardownChildren: teardownChildren,
       $on: callbacks.$on,
+      $once: callbacks.$once,
       $off: callbacks.$off,
       $hash: hash,
       $hashObject: hashObject,
