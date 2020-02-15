@@ -150,14 +150,11 @@
       return nodeOffset;
     };
     fillTemplate = function(template, scope) {
-      console.log('ft', template);
       return template.replace(/\{\{(.+?)\}\}/g, function(all, expression) {
         var result;
-        console.log('fill template', expression, scope);
         if (typeof (result = evalInContext(expression, scope)) === 'undefined') {
           return '';
         } else {
-          console.log('returning', result);
           return result;
         }
       });
@@ -430,6 +427,7 @@
                   delete updates[key];
                 }
               } else {
+                setScopeVar(key, updates[key], myscope);
                 delete updates[key];
               }
             }
@@ -761,7 +759,6 @@
           name = ref[j];
           if (/\{\{/.test((val = elements[i].elem.getAttribute(name)))) {
             elements[i].elem.setAttribute(name, fillTemplate(val, scopes[elements[i].scope]));
-            console.log('attr', elements[i].elem.getAttribute(name));
           }
         }
       }
@@ -775,7 +772,6 @@
           for (k = 0, len1 = ref1.length; k < len1; k++) {
             node = ref1[k];
             if (node.nodeType === document.TEXT_NODE && /\{\{/.test(node.data)) {
-              console.log(node.data);
               results1.push(node.replaceWith(fillTemplate(node.data, scopes[elements[i].scope])));
             } else {
               results1.push(void 0);

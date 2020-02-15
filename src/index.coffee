@@ -83,13 +83,10 @@ Yma = (appName) ->
       node = node.parentNode
     nodeOffset
   fillTemplate = (template, scope) ->
-    console.log 'ft', template
     template.replace /\{\{(.+?)\}\}/g, (all, expression) ->
-      console.log 'fill template', expression, scope
       if typeof(result = evalInContext expression, scope) is 'undefined'
         ''
       else
-        console.log 'returning', result
         result
   mergeScopes = (scope, merge, protectedFields) ->
     protectedFields = protectedFields or []
@@ -258,8 +255,8 @@ Yma = (appName) ->
               setScopeVar key, updates[key], myscope
               delete updates[key] if not sharedWithParent
             else
+              setScopeVar key, updates[key], myscope
               delete updates[key]
-
           myscope = myscope.$parent
         updatedScopes = Object.values(scopes).filter (scope) -> (JSON.stringify(scope.$hash) isnt JSON.stringify(hashObject scope))
         await updateScopes updatedScopes
@@ -445,12 +442,10 @@ Yma = (appName) ->
       for name in elements[i].elem.getAttributeNames()
         if /\{\{/.test (val = elements[i].elem.getAttribute(name))
           elements[i].elem.setAttribute name, fillTemplate(val, scopes[elements[i].scope])
-          console.log 'attr', elements[i].elem.getAttribute name
     i = elements.length
     while i-- > 0
       for node in elements[i].elem.childNodes
         if node.nodeType is document.TEXT_NODE and /\{\{/.test node.data
-          console.log node.data
           node.replaceWith fillTemplate node.data, scopes[elements[i].scope]
   checkAttrs = ->
     for elem in elements
