@@ -438,7 +438,8 @@
           updatedScopes = Object.values(scopes).filter(function(scope) {
             return JSON.stringify(scope.$hash) !== JSON.stringify(hashObject(scope));
           });
-          return (await updateScopes(updatedScopes));
+          await updateScopes(updatedScopes);
+          return callbacks.$call('updated');
         },
         $use: function(name) {
           var component, service;

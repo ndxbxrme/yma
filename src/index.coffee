@@ -263,6 +263,7 @@ Yma = (appName) ->
           myscope = myscope.$parent
         updatedScopes = Object.values(scopes).filter (scope) -> (JSON.stringify(scope.$hash) isnt JSON.stringify(hashObject scope))
         await updateScopes updatedScopes
+        callbacks.$call 'updated'
       $use: (name) ->
         if service = services[name]
           @[name] = service.fn
