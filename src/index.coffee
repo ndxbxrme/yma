@@ -162,7 +162,7 @@ Yma = (appName) ->
           if node.nodeType is document.TEXT_NODE
             node.replaceWith elem.textNodes[t++] or ''
         for name, val of elem.attributes
-          elem.elem.setAttribute name, val
+          elem.elem.setAttribute name, val if elem.elem.hasAttribute(name)
       reset childScope for childScope in scope.$children
     i = updatedScopes.length
     while i-- > 0

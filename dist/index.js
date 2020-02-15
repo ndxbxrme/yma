@@ -298,7 +298,9 @@
           ref1 = elem.attributes;
           for (name in ref1) {
             val = ref1[name];
-            elem.elem.setAttribute(name, val);
+            if (elem.elem.hasAttribute(name)) {
+              elem.elem.setAttribute(name, val);
+            }
           }
         }
         ref2 = scope.$children;
