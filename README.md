@@ -107,6 +107,8 @@ Method names starting with a capital letter are for creating class like objects.
 |Scope(mergeScope)| Returns a new scope|
 |Callbacks()| Makes a new set of callbacks ($on, $off etc).  Used internally, you'll probably never need to touch this|
 
+{% codepen https://codepen.io/ndxbxrme/pen/VwLamrj height=800 preview=true %}
+
 
 ### More info to come
 Yma is in a pre alpha inflationary period and a few things are liable to change... namely this readme file.
