@@ -581,6 +581,7 @@
     };
     renderChildren = async function(elem, scope) {
       var child, children, j, k, len, len1, ref, results;
+      //return if /\byma-router-parked\b/.test elem.className
       children = [];
       ref = elem.children;
       for (j = 0, len = ref.length; j < len; j++) {
@@ -670,6 +671,7 @@
     };
     preRenderChildren = async function(elem, root, preElements) {
       var child, children, j, k, len, len1, ref, results;
+      //return if /\byma-router-parked\b/.test elem.className
       children = [];
       ref = elem.children;
       for (j = 0, len = ref.length; j < len; j++) {
@@ -927,7 +929,7 @@
           return;
         }
         styles = document.createElement('style');
-        styles.innerText = stylesText;
+        styles.innerText = stylesText.replace(/\n/gi, '');
         return document.querySelector('head').append(styles);
       }
     };

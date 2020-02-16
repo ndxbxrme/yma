@@ -331,6 +331,7 @@ Yma = (appName) ->
     elem.getAttributeNames().forEach (name) -> myattrs[name] = if scope then fillTemplate(elem.getAttribute(name), scope) else elem.getAttribute(name)
     myattrs
   renderChildren = (elem, scope) ->
+    #return if /\byma-router-parked\b/.test elem.className
     children = []
     children.push child for child in elem.children
     await render child, scope for child in children
@@ -386,6 +387,7 @@ Yma = (appName) ->
       data: data
     await renderChildren elem, scope
   preRenderChildren = (elem, root, preElements) ->
+    #return if /\byma-router-parked\b/.test elem.className
     children = []
     children.push child for child in elem.children
     await preRender child, root, 0, preElements for child in children
@@ -535,7 +537,7 @@ Yma = (appName) ->
   $appendStyles: (stylesText) ->
     return if not stylesText
     styles = document.createElement 'style'
-    styles.innerText = stylesText
+    styles.innerText = stylesText.replace(/\n/gi,'')
     document.querySelector 'head'
     .append styles
 module.exports = Yma
