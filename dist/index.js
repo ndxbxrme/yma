@@ -118,7 +118,7 @@
         return 'root';
       }
       id = '';
-      while (node !== root) {
+      while (node && node !== root) {
         id += node.tagName + ':';
         mynode = node;
         while (mynode.previousSibling) {

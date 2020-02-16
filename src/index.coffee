@@ -63,7 +63,7 @@ Yma = (appName) ->
     root = root or rootElem
     return 'root' if node is root
     id = ''
-    while node isnt root
+    while node and node isnt root
       id += node.tagName + ':'
       mynode = node
       while mynode.previousSibling
