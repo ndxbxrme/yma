@@ -246,9 +246,9 @@ Yma = (appName) ->
       $parent: null
       $environment: environment
       $update: (updates, hard) ->
-        myscope = @
-        while myscope.$parent
-          for key of updates
+        for key of updates
+          myscope = @
+          while myscope.$parent
             myprop = getScopeVar key, myscope
             if typeof(myprop) isnt 'undefined'
               sharedWithParent = myprop is getScopeVar key, myscope.$parent
@@ -257,6 +257,8 @@ Yma = (appName) ->
             else
               setScopeVar key, updates[key], myscope
               delete updates[key]
+          if typeof(updates[key]) isnt 'undefined'
+            setScopeVar key, updates[key], @
           myscope = myscope.$parent
         updatedScopes = Object.values(scopes).filter (scope) -> (JSON.stringify(scope.$hash) isnt JSON.stringify(hashObject scope))
         await updateScopes updatedScopes
@@ -481,6 +483,7 @@ Yma = (appName) ->
     await fillVars()
     await checkAttrs()
     callbacks.$call 'rendered'
+    @
   $renderChildren: (elem, scope) ->
     await renderChildren elem, scope
     await fillVars()

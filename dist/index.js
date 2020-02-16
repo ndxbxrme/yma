@@ -418,9 +418,9 @@
         $environment: environment,
         $update: async function(updates, hard) {
           var key, myprop, myscope, sharedWithParent, updatedScopes;
-          myscope = this;
-          while (myscope.$parent) {
-            for (key in updates) {
+          for (key in updates) {
+            myscope = this;
+            while (myscope.$parent) {
               myprop = getScopeVar(key, myscope);
               if (typeof myprop !== 'undefined') {
                 sharedWithParent = myprop === getScopeVar(key, myscope.$parent);
@@ -432,6 +432,9 @@
                 setScopeVar(key, updates[key], myscope);
                 delete updates[key];
               }
+            }
+            if (typeof updates[key] !== 'undefined') {
+              setScopeVar(key, updates[key], this);
             }
             myscope = myscope.$parent;
           }
@@ -843,7 +846,8 @@
         await render(elem, scope);
         await fillVars();
         await checkAttrs();
-        return callbacks.$call('rendered');
+        callbacks.$call('rendered');
+        return this;
       },
       $renderChildren: async function(elem, scope) {
         await renderChildren(elem, scope);
