@@ -102,7 +102,7 @@
   };
 
   Yma = function(appName) {
-    var Scope, bootstrapped, callbacks, checkAttrs, cleanupScopes, components, elements, environment, evalInContext, fillTemplate, fillVars, getElement, getProps, getScopeVar, getService, makeId, mergeScopes, offset, preRender, preRenderChildren, render, renderChildren, rootElem, scopeVar, scopes, services, setScopeVar, teardown, teardownChildren, updateScopes;
+    var Scope, bootstrapped, callbacks, checkAttrs, cleanupScopes, components, elements, environment, evalInContext, fillTemplate, fillVars, getElement, getProps, getScopeVar, getScopeVarRoot, getService, makeId, mergeScopes, offset, preRender, preRenderChildren, render, renderChildren, rootElem, scopeVar, scopes, services, setScopeVar, teardown, teardownChildren, updateScopes;
     rootElem = null;
     components = {};
     elements = [];
@@ -211,7 +211,21 @@
       return (await cleanupScopes());
     };
     updateScopes = async function(updatedScopes) {
-      var elemId, element, elemsToUpdate, i, index, j, len, preElements, preRoot, realRoot, reset, scope, unknowns, updateScope;
+      /*
+      updateScope = (scope, changedVars) ->
+        myhash = hashObject scope
+        for key, val of myhash
+          if val isnt scope.$hash?[key]
+            if typeof(changedVars[key]) isnt 'undefined'
+              changedVars[key] = scope[key]
+          else
+            if typeof(changedVars[key]) isnt 'undefined'
+              scope[key] = changedVars[key]
+        scope.$hash = myhash
+        for childScope in scope.$children
+          updateScope childScope, changedVars
+      */
+      var elemId, element, elemsToUpdate, i, index, j, len, preElements, preRoot, realRoot, reset, scope, unknowns;
       index = 0;
       while (updatedScopes.length > index + 1) {
         i = updatedScopes.length;
@@ -228,30 +242,6 @@
         }
         index++;
       }
-      updateScope = function(scope, changedVars) {
-        var childScope, j, key, len, myhash, ref, ref1, results, val;
-        myhash = hashObject(scope);
-        for (key in myhash) {
-          val = myhash[key];
-          if (val !== ((ref = scope.$hash) != null ? ref[key] : void 0)) {
-            if (typeof changedVars[key] !== 'undefined') {
-              changedVars[key] = scope[key];
-            }
-          } else {
-            if (typeof changedVars[key] !== 'undefined') {
-              scope[key] = changedVars[key];
-            }
-          }
-        }
-        scope.$hash = myhash;
-        ref1 = scope.$children;
-        results = [];
-        for (j = 0, len = ref1.length; j < len; j++) {
-          childScope = ref1[j];
-          results.push(updateScope(childScope, changedVars));
-        }
-        return results;
-      };
       preRoot = document.createElement('div');
       preElements = [];
       realRoot = elements[0];
@@ -313,7 +303,7 @@
       };
       i = updatedScopes.length;
       while (i-- > 0) {
-        updateScope(updatedScopes[i], {});
+        //updateScope updatedScopes[i], {}
         reset(updatedScopes[i]);
         await updatedScopes[i].$callChildren('update');
       }
@@ -384,15 +374,26 @@
           }
         }
         if (sp.type === '[]') {
-          myvar = evalInContext(sp.endPath, scope);
+          myvar = evalInContext(sp.path, scope);
           if (typeof myvar === 'undefined') {
             myvar = evalInContext('this.' + sp.path + '=[]', scope);
+            myvar = evalInContext(sp.endPath + '={}', scope);
           }
         }
       }
+      if (op === 'rootName') {
+        return splitPoints[0].path;
+      }
+      if (op === 'root') {
+        return evalInContext(splitPoints[0].path, scope);
+      }
       lastPoint = splitPoints[splitPoints.length - 1];
       lastIndex = lastPoint ? (lastPoint.lastIndex || lastPoint.index) + 1 : 0;
-      field = path.substr(lastIndex);
+      if (splitPoints[splitPoints.length - 1].type === '[]') {
+        field = evalInContext(path.substr(lastIndex).replace(/\]$/, ''), scope);
+      } else {
+        field = path.substr(lastIndex);
+      }
       if (op === 'get') {
         return (myvar || scope)[field];
       } else {
@@ -406,6 +407,9 @@
     getScopeVar = function(path, scope) {
       return scopeVar('get', path, null, scope);
     };
+    getScopeVarRoot = function(path, scope) {
+      return scopeVar('root', path, null, scope);
+    };
     Scope = function(merge) {
       var intervals, newscope, scopeCallbacks, timeouts;
       scopeCallbacks = Callbacks();
@@ -417,30 +421,43 @@
         $parent: null,
         $environment: environment,
         $update: async function(updates, hard) {
-          var key, myprop, myscope, sharedWithParent, updatedScopes;
-          for (key in updates) {
-            myscope = this;
-            while (myscope.$parent) {
-              myprop = getScopeVar(key, myscope);
-              if (typeof myprop !== 'undefined') {
-                sharedWithParent = myprop === getScopeVar(key, myscope.$parent);
-                setScopeVar(key, updates[key], myscope);
-                if (!sharedWithParent) {
-                  delete updates[key];
-                }
-              } else {
-                setScopeVar(key, updates[key], myscope);
-                delete updates[key];
+          var j, key, len, myscope, propagateForwards, rootName, scope, updatedScopes, val;
+          propagateForwards = function(myscope, rootName, value) {
+            var propagate;
+            propagate = function(childScope) {
+              var child, j, len, ref;
+              childScope[rootName] = val;
+              ref = childScope.$children;
+              for (j = 0, len = ref.length; j < len; j++) {
+                child = ref[j];
+                propagate(child);
               }
+              return null;
+            };
+            return propagate(myscope);
+          };
+          for (key in updates) {
+            val = updates[key];
+            rootName = scopeVar('rootName', key, null, this);
+            setScopeVar(key, val, this);
+            val = this[rootName];
+            myscope = this;
+            while (myscope && myscope.$parent) {
+              if (myscope.$hash[rootName] && myscope.$hash[rootName] !== myscope.$parent.$hash[rootName]) {
+                myscope[rootName] = val;
+                propagateForwards(myscope, rootName, val);
+                break;
+              }
+              myscope = myscope.$parent;
             }
-            if (typeof updates[key] !== 'undefined') {
-              setScopeVar(key, updates[key], this);
-            }
-            myscope = myscope.$parent;
           }
           updatedScopes = Object.values(scopes).filter(function(scope) {
             return JSON.stringify(scope.$hash) !== JSON.stringify(hashObject(scope));
           });
+          for (j = 0, len = updatedScopes.length; j < len; j++) {
+            scope = updatedScopes[j];
+            scope.$hash = hashObject(scope);
+          }
           await updateScopes(updatedScopes);
           return callbacks.$call('updated');
         },

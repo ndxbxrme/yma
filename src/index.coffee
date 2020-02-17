@@ -124,6 +124,7 @@ Yma = (appName) ->
           updatedScopes.splice i, 1
           continue
       index++
+    ###
     updateScope = (scope, changedVars) ->
       myhash = hashObject scope
       for key, val of myhash
@@ -136,6 +137,7 @@ Yma = (appName) ->
       scope.$hash = myhash
       for childScope in scope.$children
         updateScope childScope, changedVars
+    ###
     preRoot = document.createElement 'div'
     preElements = []
     realRoot = elements[0]
@@ -166,7 +168,7 @@ Yma = (appName) ->
       reset childScope for childScope in scope.$children
     i = updatedScopes.length
     while i-- > 0
-      updateScope updatedScopes[i], {}
+      #updateScope updatedScopes[i], {}
       reset updatedScopes[i]
       await updatedScopes[i].$callChildren 'update'
     await fillVars()
@@ -221,12 +223,18 @@ Yma = (appName) ->
         if typeof(myvar) is 'undefined'
           myvar = evalInContext 'this.' + sp.path + '={}', scope
       if sp.type is '[]'
-        myvar = evalInContext sp.endPath, scope
+        myvar = evalInContext sp.path, scope
         if typeof(myvar) is 'undefined'
           myvar = evalInContext 'this.' + sp.path + '=[]', scope
+          myvar = evalInContext sp.endPath + '={}', scope
+    return splitPoints[0].path if op is 'rootName'
+    return evalInContext(splitPoints[0].path, scope) if op is 'root'
     lastPoint = splitPoints[splitPoints.length - 1]
     lastIndex = if lastPoint then (lastPoint.lastIndex or lastPoint.index) + 1 else 0
-    field = path.substr lastIndex
+    if splitPoints[splitPoints.length - 1].type is '[]'
+      field = evalInContext(path.substr(lastIndex).replace(/\]$/, ''), scope)
+    else
+      field = path.substr(lastIndex)
     if op is 'get'
       return (myvar or scope)[field]
     else
@@ -236,6 +244,8 @@ Yma = (appName) ->
     scopeVar 'set', path, value, scope
   getScopeVar = (path, scope) ->
     scopeVar 'get', path, null, scope
+  getScopeVarRoot = (path, scope) ->
+    scopeVar 'root', path, null, scope
   Scope = (merge) ->
     scopeCallbacks = Callbacks()
     timeouts = []
@@ -246,21 +256,25 @@ Yma = (appName) ->
       $parent: null
       $environment: environment
       $update: (updates, hard) ->
-        for key of updates
+        propagateForwards = (myscope, rootName, value) ->
+          propagate = (childScope) ->
+            childScope[rootName] = val
+            propagate child for child in childScope.$children
+            null
+          propagate myscope
+        for key, val of updates
+          rootName = scopeVar 'rootName', key, null, @
+          setScopeVar key, val, @
+          val = @[rootName]
           myscope = @
-          while myscope.$parent
-            myprop = getScopeVar key, myscope
-            if typeof(myprop) isnt 'undefined'
-              sharedWithParent = myprop is getScopeVar key, myscope.$parent
-              setScopeVar key, updates[key], myscope
-              delete updates[key] if not sharedWithParent
-            else
-              setScopeVar key, updates[key], myscope
-              delete updates[key]
-          if typeof(updates[key]) isnt 'undefined'
-            setScopeVar key, updates[key], @
-          myscope = myscope.$parent
+          while myscope and myscope.$parent
+            if myscope.$hash[rootName] and myscope.$hash[rootName] isnt myscope.$parent.$hash[rootName]
+              myscope[rootName] = val
+              propagateForwards myscope, rootName, val
+              break
+            myscope = myscope.$parent
         updatedScopes = Object.values(scopes).filter (scope) -> (JSON.stringify(scope.$hash) isnt JSON.stringify(hashObject scope))
+        scope.$hash = hashObject scope for scope in updatedScopes
         await updateScopes updatedScopes
         callbacks.$call 'updated'
       $use: (name) ->
