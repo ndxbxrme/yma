@@ -116,13 +116,14 @@ Yma = (appName) ->
     while updatedScopes.length > index + 1
       i = updatedScopes.length
       while i-- > index
-        if updatedScopes[i].$isDescendantOf updatedScopes[0]
-          updatedScopes.splice i, 1
-          continue
-        if updatedScopes[i].$isAncestorOf updatedScopes[0]
-          updatedScopes[0] = updatedScopes[i]
-          updatedScopes.splice i, 1
-          continue
+        if updatedScopes[i]
+          if updatedScopes[i].$isDescendantOf updatedScopes[0]
+            updatedScopes.splice i, 1
+            continue
+          if updatedScopes[i].$isAncestorOf updatedScopes[0]
+            updatedScopes[0] = updatedScopes[i]
+            updatedScopes.splice i, 1
+            continue
       index++
     ###
     updateScope = (scope, changedVars) ->
