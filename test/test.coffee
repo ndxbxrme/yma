@@ -42,6 +42,15 @@ exports.ymaTest =
         console.log 'controller'
     test.equal typeof(app.$getComponents()['MYCOMPONENT']), 'function'
     test.done()
+  "Should make a child scope": (test) ->
+    app = require('../dist/index') 'myApp'
+    parentScope = app.Scope()
+    parentScope.myname = 'buddy'
+    childScope = app.Scope(parentScope)
+    test.equal childScope.$parent, parentScope
+    test.equal parentScope.$children[0], childScope
+    test.equal childScope.myname, 'buddy'
+    test.done()
   "Should set scoped vars": (test) ->
     app = require('../dist/index') 'myApp'
     scope = app.Scope()

@@ -71,6 +71,17 @@
       test.equal(typeof (app.$getComponents()['MYCOMPONENT']), 'function');
       return test.done();
     },
+    "Should make a child scope": function(test) {
+      var app, childScope, parentScope;
+      app = require('../dist/index')('myApp');
+      parentScope = app.Scope();
+      parentScope.myname = 'buddy';
+      childScope = app.Scope(parentScope);
+      test.equal(childScope.$parent, parentScope);
+      test.equal(parentScope.$children[0], childScope);
+      test.equal(childScope.myname, 'buddy');
+      return test.done();
+    },
     "Should set scoped vars": function(test) {
       var app, scope;
       app = require('../dist/index')('myApp');

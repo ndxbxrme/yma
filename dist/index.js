@@ -416,7 +416,7 @@
     getScopeVarRoot = function(path, scope) {
       return scopeVar('root', path, null, scope);
     };
-    Scope = function(merge) {
+    Scope = function(parentScope) {
       var intervals, newscope, scopeCallbacks, timeouts;
       scopeCallbacks = Callbacks();
       timeouts = [];
@@ -583,11 +583,11 @@
           });
         }
       };
-      if (merge && merge.$id) {
-        merge.$children.push(newscope);
-        newscope.$parent = merge;
+      if (parentScope && parentScope.$id) {
+        parentScope.$children.push(newscope);
+        newscope.$parent = parentScope;
       }
-      mergeScopes(newscope, merge, Object.keys(newscope));
+      mergeScopes(newscope, parentScope, Object.keys(newscope));
       return newscope;
     };
     getElement = function(elem) {
