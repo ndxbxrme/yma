@@ -467,11 +467,11 @@
           var component, service;
           if (service = services[name]) {
             this[name] = service.fn;
-            service.scopes.push(this.$id);
+            service.scopes.push(scopes[this.$id]);
           } else if (component = components[name.toUpperCase()]) {
             services[name] = {
               fn: (component.service || component)(),
-              scopes: [this.$id]
+              scopes: [scopes[this.$id]]
             };
             this[name] = services[name].fn;
           }
