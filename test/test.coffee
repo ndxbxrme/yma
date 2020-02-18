@@ -42,6 +42,14 @@ exports.ymaTest =
         console.log 'controller'
     test.equal typeof(app.$getComponents()['MYCOMPONENT']), 'function'
     test.done()
+  "Should set scoped vars": (test) ->
+    app = require('../dist/index') 'myApp'
+    scope = app.Scope()
+    app.$setScopeVar 'testThing', 'test', scope
+    test.equal scope.testThing, 'test'
+    app.$setScopeVar 'arr[4].name', 'buddy', scope
+    test.equal scope.arr[4].name, 'buddy'
+    test.done()
   "Should bootstrap an app": (test) ->
     makeServer 'test/basic'
     await gotoPage ''

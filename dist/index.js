@@ -314,7 +314,7 @@
       preRoot = null;
     };
     scopeVar = function(op, path, value, scope) {
-      var arr, field, i, inside, j, k, lastIndex, lastPoint, len, len1, letter, level, lookingFor, myvar, ref, sp, splitPoints;
+      var arr, field, i, inside, j, k, lastIndex, lastPoint, len, len1, letter, level, lookingFor, myvar, ref, ref1, ref2, ref3, sp, splitPoints;
       myvar = evalInContext(path, scope);
       arr = [];
       splitPoints = [];
@@ -384,17 +384,21 @@
         }
       }
       if (op === 'rootName') {
-        return splitPoints[0].path;
+        return ((ref1 = splitPoints[0]) != null ? ref1.path : void 0) || path;
       }
       if (op === 'root') {
-        return evalInContext(splitPoints[0].path, scope);
+        return evalInContext(((ref2 = splitPoints[0]) != null ? ref2.path : void 0) || path, scope);
       }
       lastPoint = splitPoints[splitPoints.length - 1];
       lastIndex = lastPoint ? (lastPoint.lastIndex || lastPoint.index) + 1 : 0;
-      if (splitPoints[splitPoints.length - 1].type === '[]') {
+      if (((ref3 = splitPoints[splitPoints.length - 1]) != null ? ref3.type : void 0) === '[]') {
         field = evalInContext(path.substr(lastIndex).replace(/\]$/, ''), scope);
       } else {
-        field = path.substr(lastIndex);
+        if (lastIndex) {
+          field = path.substr(lastIndex);
+        } else {
+          field = path;
+        }
       }
       if (op === 'get') {
         return (myvar || scope)[field];
@@ -954,6 +958,19 @@
         styles = document.createElement('style');
         styles.innerText = stylesText.replace(/\n/gi, '');
         return document.querySelector('head').append(styles);
+      },
+      $internal: {
+        components: components,
+        scopes: scopes,
+        services: services,
+        callbacks: callbacks,
+        fillTemplate: fillTemplate,
+        mergeScopes: mergeScopes,
+        cleanupScopes: cleanupScopes,
+        updateScopes: updateScopes,
+        scopeVar: scopeVar,
+        getScopeVarRoot: getScopeVarRoot,
+        getService: getService
       }
     };
   };

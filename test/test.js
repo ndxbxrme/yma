@@ -71,6 +71,16 @@
       test.equal(typeof (app.$getComponents()['MYCOMPONENT']), 'function');
       return test.done();
     },
+    "Should set scoped vars": function(test) {
+      var app, scope;
+      app = require('../dist/index')('myApp');
+      scope = app.Scope();
+      app.$setScopeVar('testThing', 'test', scope);
+      test.equal(scope.testThing, 'test');
+      app.$setScopeVar('arr[4].name', 'buddy', scope);
+      test.equal(scope.arr[4].name, 'buddy');
+      return test.done();
+    },
     "Should bootstrap an app": async function(test) {
       var elements, scopes;
       makeServer('test/basic');

@@ -228,14 +228,17 @@ Yma = (appName) ->
         if typeof(myvar) is 'undefined'
           myvar = evalInContext 'this.' + sp.path + '=[]', scope
           myvar = evalInContext sp.endPath + '={}', scope
-    return splitPoints[0].path if op is 'rootName'
-    return evalInContext(splitPoints[0].path, scope) if op is 'root'
+    return (splitPoints[0]?.path or path) if op is 'rootName'
+    return evalInContext((splitPoints[0]?.path or path), scope) if op is 'root'
     lastPoint = splitPoints[splitPoints.length - 1]
     lastIndex = if lastPoint then (lastPoint.lastIndex or lastPoint.index) + 1 else 0
-    if splitPoints[splitPoints.length - 1].type is '[]'
+    if splitPoints[splitPoints.length - 1]?.type is '[]'
       field = evalInContext(path.substr(lastIndex).replace(/\]$/, ''), scope)
     else
-      field = path.substr(lastIndex)
+      if lastIndex
+        field = path.substr(lastIndex)
+      else
+        field = path
     if op is 'get'
       return (myvar or scope)[field]
     else
@@ -247,7 +250,7 @@ Yma = (appName) ->
     scopeVar 'get', path, null, scope
   getScopeVarRoot = (path, scope) ->
     scopeVar 'root', path, null, scope
-  Scope = (merge) ->
+  Scope = (parentScope) ->
     scopeCallbacks = Callbacks()
     timeouts = []
     intervals = []
@@ -334,10 +337,10 @@ Yma = (appName) ->
         @.$on 'teardown', ->
           for listener in listeners
             elem.removeEventListener listener, fn
-    if merge and merge.$id
-      merge.$children.push newscope
-      newscope.$parent = merge
-    mergeScopes newscope, merge, Object.keys(newscope)
+    if parentScope and parentScope.$id
+      parentScope.$children.push newscope
+      newscope.$parent = parentScope
+    mergeScopes newscope, parentScope, Object.keys(newscope)
     newscope
 
   getElement = (elem) ->
@@ -558,4 +561,16 @@ Yma = (appName) ->
     styles.innerText = stylesText.replace(/\n/gi,'')
     document.querySelector 'head'
     .append styles
+  $internal:
+    components: components
+    scopes: scopes
+    services: services
+    callbacks: callbacks
+    fillTemplate: fillTemplate
+    mergeScopes: mergeScopes
+    cleanupScopes: cleanupScopes
+    updateScopes: updateScopes
+    scopeVar: scopeVar
+    getScopeVarRoot: getScopeVarRoot
+    getService: getService
 module.exports = Yma
