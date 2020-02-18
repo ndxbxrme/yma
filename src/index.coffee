@@ -281,14 +281,14 @@ Yma = (appName) ->
       $use: (name) ->
         if service = services[name]
           @[name] = service.fn
-          service.scopes.push scopes[@.$id]
+          service.scopes.push @
         else if component = components[name.toUpperCase()]
           services[name] =
             fn: (component.service or component)()
-            scopes: [scopes[@.$id]]
+            scopes: [@]
           @[name] = services[name].fn
         @.$on 'teardown', ->
-          services[name].scopes.splice services[name].scopes.indexOf(@.$id), 1
+          services[name].scopes.splice services[name].scopes.indexOf(@), 1
       $on: scopeCallbacks.$on
       $once: scopeCallbacks.$once
       $off: scopeCallbacks.$off

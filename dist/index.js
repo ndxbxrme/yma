@@ -467,16 +467,16 @@
           var component, service;
           if (service = services[name]) {
             this[name] = service.fn;
-            service.scopes.push(scopes[this.$id]);
+            service.scopes.push(this);
           } else if (component = components[name.toUpperCase()]) {
             services[name] = {
               fn: (component.service || component)(),
-              scopes: [scopes[this.$id]]
+              scopes: [this]
             };
             this[name] = services[name].fn;
           }
           return this.$on('teardown', function() {
-            return services[name].scopes.splice(services[name].scopes.indexOf(this.$id), 1);
+            return services[name].scopes.splice(services[name].scopes.indexOf(this), 1);
           });
         },
         $on: scopeCallbacks.$on,
