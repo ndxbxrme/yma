@@ -150,6 +150,7 @@ Yma = (appName) ->
       parentId = unknown.id.replace /UNKNOWN@\w+:[\w@]+@/, ''
       elemsToUpdate.push parentId if not elemsToUpdate.includes parentId
     for elemId in elemsToUpdate
+      elemId = 'root' if not elemId
       element = elements.filter((element) -> element.id is elemId)[0]
       if element
         scope = scopes[element.scope]

@@ -262,6 +262,9 @@
       });
       for (j = 0, len = elemsToUpdate.length; j < len; j++) {
         elemId = elemsToUpdate[j];
+        if (!elemId) {
+          elemId = 'root';
+        }
         element = elements.filter(function(element) {
           return element.id === elemId;
         })[0];
