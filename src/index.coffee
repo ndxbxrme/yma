@@ -357,6 +357,7 @@ Yma = (appName) ->
     children.push child for child in elem.children
     await render child, scope for child in children
   render = (elem, scope) ->
+    return if not elem
     preId = null
     scopes[scope.$id] = scope
     scope.$hash = hashObject scope
@@ -413,6 +414,7 @@ Yma = (appName) ->
     children.push child for child in elem.children
     await preRender child, root, 0, preElements for child in children
   preRender = (elem, root, index, preElements) ->
+    return if not elem
     id = makeId elem, root
     preId = 'PREX:' + id
     html = elem.innerHTML

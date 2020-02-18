@@ -626,6 +626,9 @@
     };
     render = async function(elem, scope) {
       var attr, attrComponent, attributes, clone, component, data, html, i, j, k, len, len1, myscopes, newscope, node, preId, ref, ref1, textNodes;
+      if (!elem) {
+        return;
+      }
       preId = null;
       scopes[scope.$id] = scope;
       scope.$hash = hashObject(scope);
@@ -716,6 +719,9 @@
     };
     preRender = async function(elem, root, index, preElements) {
       var attr, attrComponent, attributes, clone, component, html, i, id, j, len, myscopes, preId, realElem, ref, scope;
+      if (!elem) {
+        return;
+      }
       id = makeId(elem, root);
       preId = 'PREX:' + id;
       html = elem.innerHTML;
