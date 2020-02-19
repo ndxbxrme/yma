@@ -391,6 +391,7 @@ Yma = (appName) ->
               elem.parentNode.removeChild elem if myscopes.length is 0
             #return#check this
         elem.setAttribute 'checkattrs', true
+        needsScope = true
     if elem.parentNode and component = components[elem.tagName]
       newscope = Scope scope
       scope = newscope
@@ -399,6 +400,12 @@ Yma = (appName) ->
       scope.$hash = hashObject scope
       elem.innerHTML = if component.template then component.template else html
       elem.innerHTML = elem.innerHTML.replace '<children></children>', html
+    else
+      if needsScope
+        newscope = Scope scope
+        scope = newscope
+        scopes[scope.$id] = scope
+        scope.$hash = hashObject scope
     elements.push
       id: preId or makeId elem
       elem: elem

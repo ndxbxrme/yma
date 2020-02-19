@@ -625,7 +625,7 @@
       return results;
     };
     render = async function(elem, scope) {
-      var attr, attrComponent, attributes, clone, component, data, html, i, j, k, len, len1, myscopes, newscope, node, preId, ref, ref1, textNodes;
+      var attr, attrComponent, attributes, clone, component, data, html, i, j, k, len, len1, myscopes, needsScope, newscope, node, preId, ref, ref1, textNodes;
       if (!elem) {
         return;
       }
@@ -677,6 +677,7 @@
           }
           //return#check this
           elem.setAttribute('checkattrs', true);
+          needsScope = true;
         }
       }
       if (elem.parentNode && (component = components[elem.tagName])) {
@@ -689,6 +690,13 @@
         scope.$hash = hashObject(scope);
         elem.innerHTML = component.template ? component.template : html;
         elem.innerHTML = elem.innerHTML.replace('<children></children>', html);
+      } else {
+        if (needsScope) {
+          newscope = Scope(scope);
+          scope = newscope;
+          scopes[scope.$id] = scope;
+          scope.$hash = hashObject(scope);
+        }
       }
       elements.push({
         id: preId || makeId(elem),
