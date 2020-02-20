@@ -690,6 +690,7 @@
         scope.$hash = hashObject(scope);
         elem.innerHTML = component.template ? component.template : html;
         elem.innerHTML = elem.innerHTML.replace('<children></children>', html);
+        html = elem.innerHTML;
       } else {
         if (needsScope) {
           newscope = Scope(scope);

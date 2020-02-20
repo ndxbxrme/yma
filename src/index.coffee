@@ -400,6 +400,7 @@ Yma = (appName) ->
       scope.$hash = hashObject scope
       elem.innerHTML = if component.template then component.template else html
       elem.innerHTML = elem.innerHTML.replace '<children></children>', html
+      html = elem.innerHTML
     else
       if needsScope
         newscope = Scope scope
