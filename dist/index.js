@@ -564,7 +564,7 @@
               return results;
             });
           }
-          return intervals.push(window.setTimeout(fn, delay));
+          return intervals.push(window.setInterval(fn, delay));
         },
         $addEventListeners: function(elem, listeners, fn) {
           var j, len, listener;

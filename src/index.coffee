@@ -329,7 +329,7 @@ Yma = (appName) ->
           scopeCallbacks.$on 'teardown', ->
             for interval in intervals
               window.clearTimeout interval
-        intervals.push window.setTimeout fn, delay
+        intervals.push window.setInterval fn, delay
       $addEventListeners: (elem, listeners, fn) ->
         if typeof(listeners) is 'string'
           listeners = [listeners]
