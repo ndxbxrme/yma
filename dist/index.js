@@ -744,6 +744,7 @@
         scope.$phase = 'prerender';
       }
       if (!(realElem || scope)) {
+        debugger;
         preElements.push({
           id: 'UNKNOWN@' + id
         });
@@ -768,7 +769,7 @@
                   clone.innerHTML = elem.innerHTML;
                   clone.removeAttribute(attr);
                   elem.parentNode.insertBefore(clone, elem.nextSibling);
-                  await preRender(clone, root, i - 1, preElements);
+                  await preRender(clone, root, i, preElements);
                 }
                 elem.parentNode.removeChild(elem);
               } else {

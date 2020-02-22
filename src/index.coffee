@@ -432,6 +432,7 @@ Yma = (appName) ->
     scope = scopes[realElem?.scope]
     scope?.$phase = 'prerender'
     if not (realElem or scope)
+      debugger
       preElements.push
         id: 'UNKNOWN@' + id
       return
@@ -450,7 +451,7 @@ Yma = (appName) ->
                 clone.innerHTML = elem.innerHTML
                 clone.removeAttribute attr
                 elem.parentNode.insertBefore clone, elem.nextSibling
-                await preRender clone, root, i - 1, preElements
+                await preRender clone, root, i, preElements
               elem.parentNode.removeChild elem
             else
               if myscopes.length is 0
