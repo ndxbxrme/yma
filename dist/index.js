@@ -744,7 +744,6 @@
         scope.$phase = 'prerender';
       }
       if (!(realElem || scope)) {
-        debugger;
         preElements.push({
           id: 'UNKNOWN@' + id
         });
