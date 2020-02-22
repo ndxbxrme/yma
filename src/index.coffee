@@ -1,5 +1,5 @@
 ogid = (radix, rnd) ->
-  parseInt((new Date().valueOf() - new Date(2020,0,1).valueOf()).toString().concat(Math.floor(Math.random() * (9999 or rnd))).split('').reverse().join('')).toString(radix or 36)
+  parseInt((new Date().valueOf() - new Date(2020,0,1).valueOf()).toString().concat(Math.floor(Math.random() * (9999999 or rnd))).split('').reverse().join('')).toString(radix or 36)
 hash = (str) ->
   if typeof str is 'undefined'
     return 0

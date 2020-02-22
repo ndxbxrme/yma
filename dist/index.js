@@ -3,7 +3,7 @@
   var Callbacks, Environment, Yma, hash, hashObject, ogid;
 
   ogid = function(radix, rnd) {
-    return parseInt((new Date().valueOf() - new Date(2020, 0, 1).valueOf()).toString().concat(Math.floor(Math.random() * (9999 || rnd))).split('').reverse().join('')).toString(radix || 36);
+    return parseInt((new Date().valueOf() - new Date(2020, 0, 1).valueOf()).toString().concat(Math.floor(Math.random() * (9999999 || rnd))).split('').reverse().join('')).toString(radix || 36);
   };
 
   hash = function(str) {
