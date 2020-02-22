@@ -744,6 +744,7 @@
         scope.$phase = 'prerender';
       }
       if (!(realElem || scope)) {
+        debugger;
         preElements.push({
           id: 'UNKNOWN@' + id
         });
@@ -912,6 +913,7 @@
       },
       Scope: Scope,
       Callbacks: Callbacks,
+      $version: require('../package.json').version,
       $getComponents: function() {
         return components;
       },

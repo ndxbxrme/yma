@@ -432,6 +432,7 @@ Yma = (appName) ->
     scope = scopes[realElem?.scope]
     scope?.$phase = 'prerender'
     if not (realElem or scope)
+      debugger
       preElements.push
         id: 'UNKNOWN@' + id
       return
@@ -529,6 +530,7 @@ Yma = (appName) ->
     @
   Scope: Scope
   Callbacks: Callbacks
+  $version: require('../package.json').version
   $getComponents: ->
     components
   $getElements: ->
