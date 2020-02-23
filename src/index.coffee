@@ -51,6 +51,7 @@ Environment = ->
   browser: browser
   version: ua[2]
 Yma = (appName) ->
+  thisApp = @
   rootElem = null
   components = {}
   elements = []
@@ -294,7 +295,7 @@ Yma = (appName) ->
           services[name] =
             fn: (component.service or component)()
             scopes: [@]
-          @[name] = services[name].fn
+          @[name] = services[name].fn thisApp
         @.$on 'teardown', ->
           services[name].scopes.splice services[name].scopes.indexOf(@), 1
       $on: scopeCallbacks.$on
