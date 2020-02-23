@@ -168,6 +168,7 @@ Yma = (appName) ->
         for name, val of elem.attributes
           elem.elem.setAttribute name, val if elem.elem.hasAttribute(name)
       reset childScope for childScope in scope.$children
+      null
     i = updatedScopes.length
     while i-- > 0
       #updateScope updatedScopes[i], {}
@@ -176,6 +177,9 @@ Yma = (appName) ->
     await fillVars()
     await checkAttrs()
     preRoot = null
+    elemsToUpdate = null
+    unknowns = null
+    updatedScopes = null
     return
   scopeVar = (op, path, value, scope) ->
     myvar = evalInContext path, scope
@@ -421,7 +425,7 @@ Yma = (appName) ->
     children = []
     children.push child for child in elem.children
     await preRender child, root, 0, preElements for child in children
-  preRender = (elem, root, index, preElements) ->
+  preRender = (elem, root, index, preElements, hash) ->
     return if not elem
     id = makeId elem, root
     preId = 'PREX:' + id
@@ -431,8 +435,7 @@ Yma = (appName) ->
     realElem = elements.filter((myelem) -> (myelem.id is id) or (myelem.id is preId))[index]
     scope = scopes[realElem?.scope]
     scope?.$phase = 'prerender'
-    if not (realElem or scope)
-      debugger
+    if not (realElem or scope) or (scope and scope.$dataHash and scope.$dataHash isnt hash)
       preElements.push
         id: 'UNKNOWN@' + id
       return
@@ -451,7 +454,7 @@ Yma = (appName) ->
                 clone.innerHTML = elem.innerHTML
                 clone.removeAttribute attr
                 elem.parentNode.insertBefore clone, elem.nextSibling
-                await preRender clone, root, i, preElements
+                await preRender clone, root, i, preElements, myscopes[i].$dataHash
               elem.parentNode.removeChild elem
             else
               if myscopes.length is 0

@@ -276,7 +276,7 @@
         }
       }
       reset = function(scope) {
-        var childScope, elem, elemsToReset, k, l, len1, len2, len3, m, name, node, ref, ref1, ref2, results, t, val;
+        var childScope, elem, elemsToReset, k, l, len1, len2, len3, m, name, node, ref, ref1, ref2, t, val;
         elemsToReset = elements.filter(function(element) {
           return element.scope === scope.$id;
         });
@@ -299,12 +299,11 @@
           }
         }
         ref2 = scope.$children;
-        results = [];
         for (m = 0, len3 = ref2.length; m < len3; m++) {
           childScope = ref2[m];
-          results.push(reset(childScope));
+          reset(childScope);
         }
-        return results;
+        return null;
       };
       i = updatedScopes.length;
       while (i-- > 0) {
@@ -315,6 +314,9 @@
       await fillVars();
       await checkAttrs();
       preRoot = null;
+      elemsToUpdate = null;
+      unknowns = null;
+      updatedScopes = null;
     };
     scopeVar = function(op, path, value, scope) {
       var arr, field, i, inside, j, k, lastIndex, lastPoint, len, len1, letter, level, lookingFor, myvar, ref, ref1, ref2, ref3, sp, splitPoints;
@@ -726,7 +728,7 @@
       }
       return results;
     };
-    preRender = async function(elem, root, index, preElements) {
+    preRender = async function(elem, root, index, preElements, hash) {
       var attr, attrComponent, attributes, clone, component, html, i, id, j, len, myscopes, preId, realElem, ref, scope;
       if (!elem) {
         return;
@@ -743,8 +745,7 @@
       if (scope != null) {
         scope.$phase = 'prerender';
       }
-      if (!(realElem || scope)) {
-        debugger;
+      if (!(realElem || scope) || (scope && scope.$dataHash && scope.$dataHash !== hash)) {
         preElements.push({
           id: 'UNKNOWN@' + id
         });
@@ -769,7 +770,7 @@
                   clone.innerHTML = elem.innerHTML;
                   clone.removeAttribute(attr);
                   elem.parentNode.insertBefore(clone, elem.nextSibling);
-                  await preRender(clone, root, i, preElements);
+                  await preRender(clone, root, i, preElements, myscopes[i].$dataHash);
                 }
                 elem.parentNode.removeChild(elem);
               } else {
