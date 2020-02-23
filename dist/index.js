@@ -102,8 +102,7 @@
   };
 
   Yma = function(appName) {
-    var Scope, bootstrapped, callbacks, checkAttrs, cleanupScopes, components, elements, environment, evalInContext, fillTemplate, fillVars, getElement, getProps, getScopeVar, getScopeVarRoot, getService, makeId, mergeScopes, offset, preRender, preRenderChildren, render, renderChildren, rootElem, scopeVar, scopes, services, setScopeVar, teardown, teardownChildren, thisApp, updateScopes;
-    thisApp = this;
+    var Scope, bootstrapped, callbacks, checkAttrs, cleanupScopes, components, elements, environment, evalInContext, fillTemplate, fillVars, getElement, getProps, getScopeVar, getScopeVarRoot, getService, makeId, mergeScopes, offset, preRender, preRenderChildren, render, renderChildren, rootElem, scopeVar, scopes, services, setScopeVar, teardown, teardownChildren, updateScopes;
     rootElem = null;
     components = {};
     elements = [];
@@ -483,7 +482,7 @@
               fn: (component.service || component)(),
               scopes: [this]
             };
-            this[name] = services[name].fn(thisApp);
+            this[name] = services[name].fn;
           }
           return this.$on('teardown', function() {
             return services[name].scopes.splice(services[name].scopes.indexOf(this), 1);
