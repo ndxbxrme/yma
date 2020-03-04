@@ -10,8 +10,8 @@ makeServer = (path) ->
     port: 23232
     directory: path
     spa: 'index.html'
-gotoPage = (path) ->
-  browser = await puppeteer.launch()
+gotoPage = (path, puppeteerOptions) ->
+  browser = await puppeteer.launch puppeteerOptions
   page = await browser.newPage()
   await page.goto 'http://localhost:23232/' + (path or '')
 closePage = ->
@@ -65,9 +65,8 @@ exports.ymaTest =
     await waitForRendered()
     elements = await page.evaluate () -> window.app.$getElements()
     scopes = await page.evaluate () -> window.app.$getScopes()
-    test.equal elements.length, 1
+    test.ok elements.$scope
     test.equal Object.keys(scopes).length, 1
-    test.ok scopes[elements[0].scope]
     await closePage()
     test.done()
   "Should evaluate text": (test) ->
@@ -100,5 +99,19 @@ exports.ymaTest =
     await waitForRendered()
     str = await page.evaluate () -> document.querySelector('app').innerHTML
     test.equal str, '<div>APP CONTROLLER<sub-component thing="thing1"><h1>THING1</h1></sub-component><sub-component thing="thing2"><h1>THING2</h1></sub-component></div>'
+    await closePage()
+    test.done()
+  "Should update an element": (test) ->
+    makeServer 'test/update-element'
+    await gotoPage ''
+    await waitForRendered()
+    str = await page.evaluate () -> document.querySelector('app').innerHTML
+    await page.evaluate () ->
+      new Promise (resolve) ->
+        window.app.$once 'updated', ->
+          resolve()
+        window.doUpdate()
+    str = await page.evaluate () -> document.querySelector('app').innerHTML
+    test.equal str, 'maggie'
     await closePage()
     test.done()

@@ -57,7 +57,7 @@
         return callbacks[name].splice(callbacks[name].indexOf(fn), 1);
       },
       $call: async function(name, data) {
-        var fn, j, k, len, len1, ref;
+        var fn, j, k, len, len1, ref, results;
         if (callbacks[name]) {
           ref = callbacks[name];
           for (j = 0, len = ref.length; j < len; j++) {
@@ -65,11 +65,17 @@
             await fn(data);
           }
         }
+        results = [];
         for (k = 0, len1 = toRemove.length; k < len1; k++) {
           fn = toRemove[k];
-          callbacks[name].splice(callbacks[name].indexOf(fn), 1);
+          if (callbacks[name]) {
+            callbacks[name].splice(callbacks[name].indexOf(fn), 1);
+            results.push(toRemove.splice(toRemove.indexOf(fn), 1));
+          } else {
+            results.push(void 0);
+          }
         }
-        return toRemove = [];
+        return results;
       }
     };
   };
@@ -102,7 +108,7 @@
   };
 
   Yma = function(appName) {
-    var Scope, bootstrapped, callbacks, checkAttrs, cleanupScopes, components, elements, environment, evalInContext, fillTemplate, fillVars, getElement, getProps, getScopeVar, getScopeVarRoot, getService, makeId, mergeScopes, offset, preRender, preRenderChildren, render, renderChildren, rootElem, scopeVar, scopes, services, setScopeVar, teardown, teardownChildren, updateScopes;
+    var Scope, bootstrapped, callbacks, checkAttrs, checkForChanges, cleanupScopes, components, elements, environment, evalInContext, fillTemplate, fillVars, findScopeElement, getElement, getProps, getScopeVar, getScopeVarRoot, getService, makeId, mergeScopes, offset, preRender, preRenderChildren, render, renderChildren, rootElem, scopeVar, scopes, services, setScopeVar, teardown, teardownChildren, updateScopes;
     rootElem = null;
     components = {};
     elements = [];
@@ -210,22 +216,64 @@
       });
       return (await cleanupScopes());
     };
-    updateScopes = async function(updatedScopes) {
-      /*
-      updateScope = (scope, changedVars) ->
-        myhash = hashObject scope
-        for key, val of myhash
-          if val isnt scope.$hash?[key]
-            if typeof(changedVars[key]) isnt 'undefined'
-              changedVars[key] = scope[key]
-          else
-            if typeof(changedVars[key]) isnt 'undefined'
-              scope[key] = changedVars[key]
-        scope.$hash = myhash
-        for childScope in scope.$children
-          updateScope childScope, changedVars
-      */
-      var elemId, element, elemsToUpdate, i, index, j, len, preElements, preRoot, realRoot, reset, scope, unknowns;
+    findScopeElement = function(element, scope) {
+      var child, j, len, myelement, ref;
+      if (element.$scope.$id === scope.$id) {
+        return element;
+      }
+      ref = element.$children;
+      for (j = 0, len = ref.length; j < len; j++) {
+        child = ref[j];
+        if (myelement = findScopeElement(child, scope)) {
+          return myelement;
+        }
+      }
+      return null;
+    };
+    checkForChanges = function(element) {
+      var attr, attrComponent, child, clone, i, j, k, len, len1, myscopes, ref, ref1, testRoot;
+      //render element html taking into account pre stuff
+      testRoot = document.createElement('div');
+      testRoot.innerHTML = element.$html;
+      ref = testRoot.children;
+      for (j = 0, len = ref.length; j < len; j++) {
+        child = ref[j];
+        if (!child) {
+          return element;
+        }
+        ref1 = child.getAttributeNames().map(function(name) {
+          return {
+            name: name,
+            value: child.getAttribute(name)
+          };
+        });
+        for (k = 0, len1 = ref1.length; k < len1; k++) {
+          attr = ref1[k];
+          if (attrComponent = components[attr.name.toUpperCase()]) {
+            element.$scope.$phase = 'prerender';
+            if (typeof attrComponent.pre === 'function') {
+              myscopes = attrComponent.pre(element.$scope, child, getProps(child, element.$scope));
+            }
+            if (myscopes && typeof myscopes === 'object' && typeof myscopes.length !== 'undefined') {
+              //child.removeAttribute attr.name
+              i = myscopes.length;
+              while (i-- > 0) {
+                clone = child.cloneNode();
+                clone.innerHTML = child.innerHTML;
+                child.parentNode.insertBefore(clone, child.nextSibling);
+              }
+              if (child.children.length !== element.$children.length) {
+                return element;
+              }
+              child.parentNode.removeChild(child);
+            }
+            child.setAttribute('checkattrs', true);
+          }
+        }
+      }
+    };
+    updateScopes = function(updatedScopes) {
+      var changes, child, children, doTeardown, element, i, index, j, k, l, len, len1, len2, ref, resetElement, updatedScope;
       index = 0;
       while (updatedScopes.length > index + 1) {
         i = updatedScopes.length;
@@ -244,79 +292,78 @@
         }
         index++;
       }
-      preRoot = document.createElement('div');
-      preElements = [];
-      realRoot = elements[0];
-      preRoot.innerHTML = realRoot.html;
-      await preRender(preRoot, preRoot, 0, preElements);
-      unknowns = preElements.filter(function(element) {
-        return /^UNKNOWN@/.test(element.id);
-      });
-      elemsToUpdate = [];
-      unknowns.forEach(function(unknown) {
-        var parentId;
-        parentId = unknown.id.replace(/UNKNOWN@\w+:[\w@]+@/, '');
-        if (!elemsToUpdate.includes(parentId)) {
-          return elemsToUpdate.push(parentId);
+      console.log('UPDATED SCOPES', updatedScopes);
+      for (j = 0, len = updatedScopes.length; j < len; j++) {
+        updatedScope = updatedScopes[j];
+        element = findScopeElement(rootElem, updatedScope); //could there be more than one?
+        changes = checkForChanges(element);
+        console.log('CHANGES', changes);
+        if (changes) {
+          doTeardown = function(element, skip) {
+            var child, k, len1, ref;
+            if (!skip) {
+              element.$scope.$call('teardown');
+            }
+            ref = element.$children;
+            for (k = 0, len1 = ref.length; k < len1; k++) {
+              child = ref[k];
+              doTeardown;
+            }
+            return null;
+          };
+          doTeardown(changes, true);
+          changes.$children = [];
+          changes.$node.innerHTML = changes.$html;
+          children = [];
+          ref = changes.$node.children;
+          for (k = 0, len1 = ref.length; k < len1; k++) {
+            child = ref[k];
+            children.push(child);
+          }
+          for (l = 0, len2 = children.length; l < len2; l++) {
+            child = children[l];
+            render(child, changes);
+          }
         }
-      });
-      for (j = 0, len = elemsToUpdate.length; j < len; j++) {
-        elemId = elemsToUpdate[j];
-        if (!elemId) {
-          elemId = 'root';
+        if (changes) {
+          //get root element for this scope
+          //try prebuilding this element
+          //if there are structural changes then fully rerender element
+          //reset vars for this element
+          console.log('PRE RESET', changes.$node.innerHTML);
         }
-        element = elements.filter(function(element) {
-          return element.id === elemId;
-        })[0];
-        if (element) {
-          scope = scopes[element.scope];
-          await teardownChildren(elemId);
-          element.elem.innerHTML = element.html;
-          await renderChildren(element.elem, scope);
-        }
-      }
-      reset = function(scope) {
-        var childScope, elem, elemsToReset, k, l, len1, len2, len3, m, name, node, ref, ref1, ref2, t, val;
-        elemsToReset = elements.filter(function(element) {
-          return element.scope === scope.$id;
-        });
-        for (k = 0, len1 = elemsToReset.length; k < len1; k++) {
-          elem = elemsToReset[k];
+        resetElement = function(element) {
+          var attr, len3, len4, len5, m, n, node, o, ref1, ref2, ref3, results, t;
+          console.log('reset element', element);
           t = 0;
-          ref = elem.elem.childNodes;
-          for (l = 0, len2 = ref.length; l < len2; l++) {
-            node = ref[l];
+          ref1 = element.$node.childNodes;
+          for (m = 0, len3 = ref1.length; m < len3; m++) {
+            node = ref1[m];
             if (node.nodeType === document.TEXT_NODE) {
-              node.replaceWith(elem.textNodes[t++] || '');
+              node.replaceWith(element.$textNodes[t++] || '');
             }
           }
-          ref1 = elem.attributes;
-          for (name in ref1) {
-            val = ref1[name];
-            if (elem.elem.hasAttribute(name)) {
-              elem.elem.setAttribute(name, val);
+          console.log('a bit later on', element);
+          ref2 = element.$attributes;
+          for (n = 0, len4 = ref2.length; n < len4; n++) {
+            attr = ref2[n];
+            if (element.$node.hasAttributes(attr.name)) {
+              element.$node.setAttribute(attr.name, attr.value);
             }
           }
-        }
-        ref2 = scope.$children;
-        for (m = 0, len3 = ref2.length; m < len3; m++) {
-          childScope = ref2[m];
-          reset(childScope);
-        }
-        return null;
-      };
-      i = updatedScopes.length;
-      while (i-- > 0) {
-        //updateScope updatedScopes[i], {}
-        reset(updatedScopes[i]);
-        await updatedScopes[i].$callChildren('update');
+          ref3 = element.$children;
+          results = [];
+          for (o = 0, len5 = ref3.length; o < len5; o++) {
+            child = ref3[o];
+            results.push(resetElement(child));
+          }
+          return results;
+        };
+        resetElement(element);
+        fillVars(element);
+        checkAttrs(element);
+        callbacks.$call('updated');
       }
-      await fillVars();
-      await checkAttrs();
-      preRoot = null;
-      elemsToUpdate = null;
-      unknowns = null;
-      updatedScopes = null;
     };
     scopeVar = function(op, path, value, scope) {
       var arr, field, i, inside, j, k, lastIndex, lastPoint, len, len1, letter, level, lookingFor, myvar, ref, ref1, ref2, ref3, sp, splitPoints;
@@ -593,6 +640,8 @@
         newscope.$parent = parentScope;
       }
       mergeScopes(newscope, parentScope, Object.keys(newscope));
+      scopes[newscope.$id] = newscope;
+      newscope.$hash = hashObject(newscope);
       return newscope;
     };
     getElement = function(elem) {
@@ -610,11 +659,11 @@
       });
       return myattrs;
     };
-    renderChildren = async function(elem, scope) {
+    renderChildren = function(node, parent) {
       var child, children, j, k, len, len1, ref, results;
       //return if /\byma-router-parked\b/.test elem.className
       children = [];
-      ref = elem.children;
+      ref = node.children;
       for (j = 0, len = ref.length; j < len; j++) {
         child = ref[j];
         children.push(child);
@@ -622,95 +671,78 @@
       results = [];
       for (k = 0, len1 = children.length; k < len1; k++) {
         child = children[k];
-        results.push((await render(child, scope)));
+        results.push(render(child, parent));
       }
       return results;
     };
-    render = async function(elem, scope) {
-      var attr, attrComponent, attributes, clone, component, data, html, i, j, k, len, len1, myscopes, needsScope, newscope, node, preId, ref, ref1, textNodes;
-      if (!elem) {
+    render = function(node, parent, scope) {
+      var attr, attrComponent, clone, component, element, i, j, len, myscopes, ref, ref1, ref2;
+      console.log('render', node, parent);
+      if (!node) {
         return;
       }
-      preId = null;
-      scopes[scope.$id] = scope;
-      scope.$hash = hashObject(scope);
-      scope.$phase = 'render';
-      scope.$call('bootstrap');
-      html = elem.innerHTML;
-      textNodes = [];
-      attributes = {};
-      data = {};
-      ref = elem.childNodes;
-      for (j = 0, len = ref.length; j < len; j++) {
-        node = ref[j];
-        if (node.nodeType === document.TEXT_NODE) {
-          textNodes.push(node.data);
-        }
+      if (/SCRIPT|STYLE/.test(node.tagName)) {
+        return;
       }
-      ref1 = elem.getAttributeNames();
-      for (k = 0, len1 = ref1.length; k < len1; k++) {
-        attr = ref1[k];
-        attributes[attr] = elem.getAttribute(attr);
-        if (attrComponent = components[attr.toUpperCase()]) {
+      element = {
+        $node: node,
+        $parent: parent,
+        $children: [],
+        $scope: scope || (parent != null ? parent.$scope : void 0) || Scope(),
+        $html: node.innerHTML,
+        $textNodes: (ref = Array.from(node.childNodes)) != null ? ref.filter(function(child) {
+          return child.nodeType === document.TEXT_NODE;
+        }) : void 0,
+        $attributes: (ref1 = node.getAttributeNames()) != null ? ref1.map(function(name) {
+          return {
+            name: name,
+            value: node.getAttribute(name)
+          };
+        }) : void 0,
+        $render: true
+      };
+      ref2 = element.$attributes;
+      for (j = 0, len = ref2.length; j < len; j++) {
+        attr = ref2[j];
+        if (attrComponent = components[attr.name.toUpperCase()]) {
           if (typeof attrComponent.pre === 'function') {
-            myscopes = (await attrComponent.pre(scope, elem, getProps(elem, scope)));
+            myscopes = attrComponent.pre(element.$scope, node, getProps(node, element.$scope));
           }
-          if (typeof myscopes !== 'undefined') {
-            elem.removeAttribute(attr);
-            preId = 'PREX:' + makeId(elem);
-            if (myscopes) {
-              if (myscopes.length) {
-                i = myscopes.length;
-                while (i-- > 0) {
-                  clone = elem.cloneNode();
-                  clone.innerHTML = elem.innerHTML;
-                  elem.parentNode.insertBefore(clone, elem.nextSibling);
-                  render(clone, myscopes[i]);
-                }
-                elem.innerHTML = '';
-                elem.parentNode.removeChild(elem);
-              } else {
-                elem.innerHTML = '';
-                if (myscopes.length === 0) {
-                  elem.parentNode.removeChild(elem);
-                }
-              }
+          if (myscopes && typeof myscopes === 'object' && typeof myscopes.length !== 'undefined') {
+            node.removeAttribute(attr.name);
+            i = myscopes.length;
+            while (i-- > 0) {
+              clone = node.cloneNode();
+              clone.innerHTML = node.innerHTML;
+              node.parentNode.insertBefore(clone, node.nextSibling);
+              render(clone, element, myscopes[i]);
+            }
+            node.parentNode.removeChild(node);
+            if (myscopes.length === 0) {
+              return;
             }
           }
-          //return#check this
-          elem.setAttribute('checkattrs', true);
-          needsScope = true;
+          node.setAttribute('checkattrs', true);
         }
       }
-      if (elem.parentNode && (component = components[elem.tagName])) {
-        newscope = Scope(scope);
-        scope = newscope;
-        scopes[scope.$id] = scope;
+      if (component = components[node.tagName.toUpperCase()]) {
+        element.$scope = Scope(element.$scope);
         if (component.controller) {
-          data = component.controller(scope, elem, getProps(elem, scope.$parent));
+          component.controller(element.$scope, node, getProps(node, element.$scope.$parent));
         }
-        scope.$hash = hashObject(scope);
-        elem.innerHTML = component.template ? component.template : html;
-        elem.innerHTML = elem.innerHTML.replace('<children></children>', html);
-        html = elem.innerHTML;
+        element.$scope.$hash = hashObject(element.$scope);
+        node.innerHTML = component.template ? component.template : element.$html;
+        node.innerHTML = node.innerHTML.replace('<children></children>', element.$html);
       } else {
-        if (needsScope) {
-          newscope = Scope(scope);
-          scope = newscope;
-          scopes[scope.$id] = scope;
-          scope.$hash = hashObject(scope);
-        }
+        //element.$html = node.innerHTML
+        node.innerHTML = element.$html;
       }
-      elements.push({
-        id: preId || makeId(elem),
-        elem: elem,
-        scope: scope.$id,
-        html: html,
-        textNodes: textNodes,
-        attributes: attributes,
-        data: data
-      });
-      return (await renderChildren(elem, scope));
+      //html = elem.innerHTML
+      if (parent) {
+        parent.$children.push(element);
+      }
+      renderChildren(node, element);
+      return element;
     };
     preRenderChildren = async function(elem, root, preElements) {
       var child, children, j, k, len, len1, ref, results;
@@ -745,7 +777,7 @@
       if (scope != null) {
         scope.$phase = 'prerender';
       }
-      if (!(realElem || scope) || (scope && scope.$dataHash && scope.$dataHash !== hash)) {
+      if (!(realElem || scope) || (scope && hash && scope.$dataHash && scope.$dataHash !== hash)) {
         preElements.push({
           id: 'UNKNOWN@' + id
         });
@@ -800,66 +832,51 @@
       //preRenderChildren
       return (await preRenderChildren(elem, root, preElements));
     };
-    fillVars = function() {
-      var i, j, len, name, node, ref, results, val;
-      i = elements.length;
-      while (i-- > 0) {
-        ref = elements[i].elem.getAttributeNames();
-        for (j = 0, len = ref.length; j < len; j++) {
-          name = ref[j];
-          if (/\{\{/.test((val = elements[i].elem.getAttribute(name)))) {
-            elements[i].elem.setAttribute(name, fillTemplate(val, scopes[elements[i].scope]));
-          }
+    fillVars = function(element) {
+      var attr, child, j, k, l, len, len1, len2, node, ref, ref1, ref2, results;
+      ref = element.$attributes;
+      for (j = 0, len = ref.length; j < len; j++) {
+        attr = ref[j];
+        if (/\{\{/.test(attr.value)) {
+          element.$node.setAttribute(attr.name, fillTemplate(attr.value, element.$scope));
         }
       }
-      i = elements.length;
+      ref1 = element.$node.childNodes;
+      for (k = 0, len1 = ref1.length; k < len1; k++) {
+        node = ref1[k];
+        if (node.nodeType === document.TEXT_NODE && /\{\{/.test(node.data)) {
+          node.replaceWith(fillTemplate(node.data, element.$scope));
+        }
+      }
+      ref2 = element.$children;
       results = [];
-      while (i-- > 0) {
-        results.push((function() {
-          var k, len1, ref1, results1;
-          ref1 = elements[i].elem.childNodes;
-          results1 = [];
-          for (k = 0, len1 = ref1.length; k < len1; k++) {
-            node = ref1[k];
-            if (node.nodeType === document.TEXT_NODE && /\{\{/.test(node.data)) {
-              results1.push(node.replaceWith(fillTemplate(node.data, scopes[elements[i].scope])));
-            } else {
-              results1.push(void 0);
-            }
-          }
-          return results1;
-        })());
+      for (l = 0, len2 = ref2.length; l < len2; l++) {
+        child = ref2[l];
+        results.push(fillVars(child));
       }
       return results;
     };
-    checkAttrs = function() {
-      var attr, attrComponent, attrFn, elem, j, len, results;
-      results = [];
-      for (j = 0, len = elements.length; j < len; j++) {
-        elem = elements[j];
-        if (elem.elem.getAttribute('checkattrs')) {
-          elem.elem.removeAttribute('checkattrs');
-          results.push((function() {
-            var k, len1, ref, results1;
-            ref = elem.elem.getAttributeNames();
-            results1 = [];
-            for (k = 0, len1 = ref.length; k < len1; k++) {
-              attr = ref[k];
-              if (attrComponent = components[attr.toUpperCase()]) {
-                attrFn = attrComponent.post || attrComponent;
-                if (typeof attrFn === 'function') {
-                  attrFn(scopes[elem.scope], elem.elem, getProps(elem.elem));
-                }
-                results1.push(elem.elem.removeAttribute(attr));
-              } else {
-                results1.push(void 0);
-              }
+    checkAttrs = function(element) {
+      var attr, attrComponent, attrFn, child, j, k, len, len1, ref, ref1, results;
+      if (element.$node.getAttribute('checkattrs')) {
+        element.$node.removeAttribute('checkattrs');
+        ref = element.$attributes;
+        for (j = 0, len = ref.length; j < len; j++) {
+          attr = ref[j];
+          if (attrComponent = components[attr.name.toUpperCase()]) {
+            attrFn = attrComponent.post || attrComponent;
+            if (typeof attrFn === 'function') {
+              attrFn(element.$scope, element.$node, getProps(element.$node, element.$scope));
             }
-            return results1;
-          })());
-        } else {
-          results.push(void 0);
+            element.$node.removeAttribute(attr.name);
+          }
         }
+      }
+      ref1 = element.$children;
+      results = [];
+      for (k = 0, len1 = ref1.length; k < len1; k++) {
+        child = ref1[k];
+        results.push(checkAttrs(child));
       }
       return results;
     };
@@ -884,11 +901,9 @@
           bootstrapped = true;
         }
         elem = elem || document.querySelector('[app=' + appName + ']');
-        rootElem = rootElem || elem;
-        scope = scope || Scope();
-        await render(elem, scope);
-        await fillVars();
-        await checkAttrs();
+        rootElem = render(elem);
+        fillVars(rootElem);
+        checkAttrs(rootElem);
         callbacks.$call('rendered');
         return this;
       },
@@ -919,7 +934,7 @@
         return components;
       },
       $getElements: function() {
-        return elements;
+        return rootElem;
       },
       $getServices: function() {
         return services;

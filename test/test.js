@@ -24,8 +24,8 @@
     });
   };
 
-  gotoPage = async function(path) {
-    browser = (await puppeteer.launch());
+  gotoPage = async function(path, puppeteerOptions) {
+    browser = (await puppeteer.launch(puppeteerOptions));
     page = (await browser.newPage());
     return (await page.goto('http://localhost:23232/' + (path || '')));
   };
@@ -103,9 +103,8 @@
       scopes = (await page.evaluate(function() {
         return window.app.$getScopes();
       }));
-      test.equal(elements.length, 1);
+      test.ok(elements.$scope);
       test.equal(Object.keys(scopes).length, 1);
-      test.ok(scopes[elements[0].scope]);
       await closePage();
       return test.done();
     },
@@ -154,6 +153,29 @@
         return document.querySelector('app').innerHTML;
       }));
       test.equal(str, '<div>APP CONTROLLER<sub-component thing="thing1"><h1>THING1</h1></sub-component><sub-component thing="thing2"><h1>THING2</h1></sub-component></div>');
+      await closePage();
+      return test.done();
+    },
+    "Should update an element": async function(test) {
+      var str;
+      makeServer('test/update-element');
+      await gotoPage('');
+      await waitForRendered();
+      str = (await page.evaluate(function() {
+        return document.querySelector('app').innerHTML;
+      }));
+      await page.evaluate(function() {
+        return new Promise(function(resolve) {
+          window.app.$once('updated', function() {
+            return resolve();
+          });
+          return window.doUpdate();
+        });
+      });
+      str = (await page.evaluate(function() {
+        return document.querySelector('app').innerHTML;
+      }));
+      test.equal(str, 'maggie');
       await closePage();
       return test.done();
     }

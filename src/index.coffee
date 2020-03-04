@@ -35,8 +35,9 @@ Callbacks = ->
       for fn in callbacks[name]
         await fn data
     for fn in toRemove
-      callbacks[name].splice callbacks[name].indexOf(fn), 1
-    toRemove = []
+      if callbacks[name]
+        callbacks[name].splice callbacks[name].indexOf(fn), 1
+        toRemove.splice toRemove.indexOf(fn), 1
 Environment = ->
   #from headjs
   ua = navigator.userAgent.toLowerCase()
@@ -111,6 +112,34 @@ Yma = (appName) ->
     elements = elements.filter (element) ->
       not r.test element.id
     await cleanupScopes()
+  findScopeElement = (element, scope) ->
+    if element.$scope.$id is scope.$id
+      return element
+    for child in element.$children
+      if myelement = findScopeElement child, scope
+        return myelement
+    null
+  checkForChanges = (element) ->
+    #render element html taking into account pre stuff
+    testRoot = document.createElement 'div'
+    testRoot.innerHTML = element.$html
+    for child in testRoot.children
+      return element if not child
+      for attr in child.getAttributeNames().map (name) -> name:name,value:child.getAttribute(name)
+        if attrComponent = components[attr.name.toUpperCase()]
+          element.$scope.$phase = 'prerender'
+          myscopes = attrComponent.pre element.$scope, child, getProps(child, element.$scope) if typeof(attrComponent.pre) is 'function'
+          if myscopes and typeof(myscopes) is 'object' and typeof(myscopes.length) isnt 'undefined'
+            #child.removeAttribute attr.name
+            i = myscopes.length
+            while i-- > 0
+              clone = child.cloneNode()
+              clone.innerHTML = child.innerHTML
+              child.parentNode.insertBefore clone, child.nextSibling
+            if child.children.length isnt element.$children.length
+              return element
+            child.parentNode.removeChild child
+          child.setAttribute 'checkattrs', true
   updateScopes = (updatedScopes) ->
     index = 0
     while updatedScopes.length > index + 1
@@ -125,61 +154,41 @@ Yma = (appName) ->
             updatedScopes.splice i, 1
             continue
       index++
-    ###
-    updateScope = (scope, changedVars) ->
-      myhash = hashObject scope
-      for key, val of myhash
-        if val isnt scope.$hash?[key]
-          if typeof(changedVars[key]) isnt 'undefined'
-            changedVars[key] = scope[key]
-        else
-          if typeof(changedVars[key]) isnt 'undefined'
-            scope[key] = changedVars[key]
-      scope.$hash = myhash
-      for childScope in scope.$children
-        updateScope childScope, changedVars
-    ###
-    preRoot = document.createElement 'div'
-    preElements = []
-    realRoot = elements[0]
-    preRoot.innerHTML = realRoot.html
-    await preRender preRoot, preRoot, 0, preElements
-    unknowns = preElements.filter (element) -> /^UNKNOWN@/.test(element.id)
-    elemsToUpdate = []
-    unknowns.forEach (unknown) ->
-      parentId = unknown.id.replace /UNKNOWN@\w+:[\w@]+@/, ''
-      elemsToUpdate.push parentId if not elemsToUpdate.includes parentId
-    for elemId in elemsToUpdate
-      elemId = 'root' if not elemId
-      element = elements.filter((element) -> element.id is elemId)[0]
-      if element
-        scope = scopes[element.scope]
-        await teardownChildren elemId
-        element.elem.innerHTML = element.html
-        await renderChildren element.elem, scope
-    reset = (scope) ->
-      elemsToReset = elements.filter (element) ->
-        element.scope is scope.$id
-      for elem in elemsToReset
+    console.log 'UPDATED SCOPES', updatedScopes
+    for updatedScope in updatedScopes
+      element = findScopeElement rootElem, updatedScope#could there be more than one?
+      changes = checkForChanges element
+      console.log 'CHANGES', changes
+      if changes
+        doTeardown = (element, skip) ->
+          element.$scope.$call('teardown') if not skip
+          doTeardown for child in element.$children
+          null
+        doTeardown changes, true
+        changes.$children = []
+        changes.$node.innerHTML = changes.$html
+        children = []
+        children.push child for child in changes.$node.children
+        render child, changes for child in children
+      #get root element for this scope
+      #try prebuilding this element
+      #if there are structural changes then fully rerender element
+      #reset vars for this element
+      console.log 'PRE RESET', changes.$node.innerHTML if changes
+      resetElement = (element) ->
+        console.log 'reset element', element
         t = 0
-        for node in elem.elem.childNodes
+        for node in element.$node.childNodes
           if node.nodeType is document.TEXT_NODE
-            node.replaceWith elem.textNodes[t++] or ''
-        for name, val of elem.attributes
-          elem.elem.setAttribute name, val if elem.elem.hasAttribute(name)
-      reset childScope for childScope in scope.$children
-      null
-    i = updatedScopes.length
-    while i-- > 0
-      #updateScope updatedScopes[i], {}
-      reset updatedScopes[i]
-      await updatedScopes[i].$callChildren 'update'
-    await fillVars()
-    await checkAttrs()
-    preRoot = null
-    elemsToUpdate = null
-    unknowns = null
-    updatedScopes = null
+            node.replaceWith element.$textNodes[t++] or ''
+        console.log 'a bit later on', element
+        for attr in element.$attributes
+          element.$node.setAttribute attr.name, attr.value if element.$node.hasAttributes attr.name
+        resetElement child for child in element.$children
+      resetElement element
+      fillVars element
+      checkAttrs element
+      callbacks.$call 'updated'
     return
   scopeVar = (op, path, value, scope) ->
     myvar = evalInContext path, scope
@@ -346,6 +355,8 @@ Yma = (appName) ->
       parentScope.$children.push newscope
       newscope.$parent = parentScope
     mergeScopes newscope, parentScope, Object.keys(newscope)
+    scopes[newscope.$id] = newscope
+    newscope.$hash = hashObject newscope
     newscope
 
   getElement = (elem) ->
@@ -355,71 +366,53 @@ Yma = (appName) ->
     myattrs = {}
     elem.getAttributeNames().forEach (name) -> myattrs[name] = if scope then fillTemplate(elem.getAttribute(name), scope) else elem.getAttribute(name)
     myattrs
-  renderChildren = (elem, scope) ->
+  renderChildren = (node, parent) ->
     #return if /\byma-router-parked\b/.test elem.className
     children = []
-    children.push child for child in elem.children
-    await render child, scope for child in children
-  render = (elem, scope) ->
-    return if not elem
-    preId = null
-    scopes[scope.$id] = scope
-    scope.$hash = hashObject scope
-    scope.$phase = 'render'
-    scope.$call 'bootstrap'
-    html = elem.innerHTML
-    textNodes = []
-    attributes = {}
-    data = {}
-    for node in elem.childNodes
-      textNodes.push node.data if node.nodeType is document.TEXT_NODE
-    for attr in elem.getAttributeNames()
-      attributes[attr] = elem.getAttribute attr
-      if attrComponent = components[attr.toUpperCase()]
-        myscopes = await attrComponent.pre scope, elem, getProps(elem, scope) if typeof(attrComponent.pre) is 'function'
-        if typeof(myscopes) isnt 'undefined'
-          elem.removeAttribute attr
-          preId = 'PREX:' + makeId elem
-          if myscopes
-            if myscopes.length
-              i = myscopes.length
-              while i-- > 0
-                clone = elem.cloneNode()
-                clone.innerHTML = elem.innerHTML
-                elem.parentNode.insertBefore clone, elem.nextSibling
-                render clone, myscopes[i]
-              elem.innerHTML = ''
-              elem.parentNode.removeChild elem
-            else
-              elem.innerHTML = ''
-              elem.parentNode.removeChild elem if myscopes.length is 0
-            #return#check this
-        elem.setAttribute 'checkattrs', true
-        needsScope = true
-    if elem.parentNode and component = components[elem.tagName]
-      newscope = Scope scope
-      scope = newscope
-      scopes[scope.$id] = scope
-      data = component.controller scope, elem, getProps(elem, scope.$parent) if component.controller
-      scope.$hash = hashObject scope
-      elem.innerHTML = if component.template then component.template else html
-      elem.innerHTML = elem.innerHTML.replace '<children></children>', html
-      html = elem.innerHTML
+    children.push child for child in node.children
+    render child, parent for child in children
+  render = (node, parent, scope) ->
+    console.log 'render', node, parent
+    return if not node
+    return if /SCRIPT|STYLE/.test node.tagName
+    element =
+      $node: node
+      $parent: parent
+      $children: []
+      $scope: scope or parent?.$scope or Scope()
+      $html: node.innerHTML
+      $textNodes: Array.from(node.childNodes)?.filter (child) -> child.nodeType is document.TEXT_NODE
+      $attributes: node.getAttributeNames()?.map (name) ->
+        name: name
+        value: node.getAttribute name
+      $render: true
+    for attr in element.$attributes
+      if attrComponent = components[attr.name.toUpperCase()]
+        myscopes = attrComponent.pre element.$scope, node, getProps(node, element.$scope) if typeof(attrComponent.pre) is 'function'
+        if myscopes and typeof(myscopes) is 'object' and typeof(myscopes.length) isnt 'undefined'
+          node.removeAttribute attr.name
+          i = myscopes.length
+          while i-- > 0
+            clone = node.cloneNode()
+            clone.innerHTML = node.innerHTML
+            node.parentNode.insertBefore clone, node.nextSibling
+            render clone, element, myscopes[i]
+          node.parentNode.removeChild node
+          return if myscopes.length is 0
+        node.setAttribute 'checkattrs', true
+    if component = components[node.tagName.toUpperCase()]
+      element.$scope = Scope element.$scope
+      component.controller element.$scope, node, getProps(node, element.$scope.$parent) if component.controller
+      element.$scope.$hash = hashObject element.$scope
+      node.innerHTML = if component.template then component.template else element.$html
+      node.innerHTML = node.innerHTML.replace '<children></children>', element.$html
+      #element.$html = node.innerHTML
     else
-      if needsScope
-        newscope = Scope scope
-        scope = newscope
-        scopes[scope.$id] = scope
-        scope.$hash = hashObject scope
-    elements.push
-      id: preId or makeId elem
-      elem: elem
-      scope: scope.$id
-      html: html
-      textNodes: textNodes
-      attributes: attributes
-      data: data
-    await renderChildren elem, scope
+      node.innerHTML = element.$html
+      #html = elem.innerHTML
+    if parent then parent.$children.push element
+    renderChildren node, element
+    element
   preRenderChildren = (elem, root, preElements) ->
     #return if /\byma-router-parked\b/.test elem.className
     children = []
@@ -435,7 +428,7 @@ Yma = (appName) ->
     realElem = elements.filter((myelem) -> (myelem.id is id) or (myelem.id is preId))[index]
     scope = scopes[realElem?.scope]
     scope?.$phase = 'prerender'
-    if not (realElem or scope) or (scope and scope.$dataHash and scope.$dataHash isnt hash)
+    if not (realElem or scope) or (scope and hash and scope.$dataHash and scope.$dataHash isnt hash)
       preElements.push
         id: 'UNKNOWN@' + id
       return
@@ -473,26 +466,23 @@ Yma = (appName) ->
       id: id
     #preRenderChildren
     await preRenderChildren elem, root, preElements
-  fillVars = ->
-    i = elements.length
-    while i-- > 0
-      for name in elements[i].elem.getAttributeNames()
-        if /\{\{/.test (val = elements[i].elem.getAttribute(name))
-          elements[i].elem.setAttribute name, fillTemplate(val, scopes[elements[i].scope])
-    i = elements.length
-    while i-- > 0
-      for node in elements[i].elem.childNodes
-        if node.nodeType is document.TEXT_NODE and /\{\{/.test node.data
-          node.replaceWith fillTemplate node.data, scopes[elements[i].scope]
-  checkAttrs = ->
-    for elem in elements
-      if elem.elem.getAttribute 'checkattrs'
-        elem.elem.removeAttribute 'checkattrs'
-        for attr in elem.elem.getAttributeNames()
-          if attrComponent = components[attr.toUpperCase()]
-            attrFn = attrComponent.post or attrComponent
-            attrFn scopes[elem.scope], elem.elem, getProps(elem.elem) if typeof(attrFn) is 'function'
-            elem.elem.removeAttribute attr
+  fillVars = (element) ->
+    for attr in element.$attributes
+      if /\{\{/.test attr.value
+        element.$node.setAttribute attr.name, fillTemplate(attr.value, element.$scope)
+    for node in element.$node.childNodes
+      if node.nodeType is document.TEXT_NODE and /\{\{/.test node.data
+        node.replaceWith fillTemplate node.data, element.$scope
+    fillVars child for child in element.$children
+  checkAttrs = (element) ->
+    if element.$node.getAttribute 'checkattrs'
+      element.$node.removeAttribute 'checkattrs'
+      for attr in element.$attributes
+        if attrComponent = components[attr.name.toUpperCase()]
+          attrFn = attrComponent.post or attrComponent
+          attrFn element.$scope, element.$node, getProps(element.$node, element.$scope) if typeof(attrFn) is 'function'
+          element.$node.removeAttribute attr.name
+    checkAttrs child for child in element.$children
 
   getService = (name) ->
     if service = services[name]
@@ -510,11 +500,9 @@ Yma = (appName) ->
       await callbacks.$call 'bootstrap'
       bootstrapped = true
     elem = elem or document.querySelector('[app=' + appName + ']')
-    rootElem = rootElem or elem
-    scope = scope or Scope()
-    await render elem, scope
-    await fillVars()
-    await checkAttrs()
+    rootElem = render elem
+    fillVars(rootElem)
+    checkAttrs(rootElem)
     callbacks.$call 'rendered'
     @
   $renderChildren: (elem, scope) ->
@@ -537,7 +525,7 @@ Yma = (appName) ->
   $getComponents: ->
     components
   $getElements: ->
-    elements
+    rootElem
   $getServices: ->
     services
   $getScopes: ->
