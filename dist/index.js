@@ -292,12 +292,10 @@
         }
         index++;
       }
-      console.log('UPDATED SCOPES', updatedScopes);
       for (j = 0, len = updatedScopes.length; j < len; j++) {
         updatedScope = updatedScopes[j];
         element = findScopeElement(rootElem, updatedScope); //could there be more than one?
         changes = checkForChanges(element);
-        console.log('CHANGES', changes);
         if (changes) {
           doTeardown = function(element, skip) {
             var child, k, len1, ref;
@@ -325,16 +323,12 @@
             render(child, changes);
           }
         }
-        if (changes) {
-          //get root element for this scope
-          //try prebuilding this element
-          //if there are structural changes then fully rerender element
-          //reset vars for this element
-          console.log('PRE RESET', changes.$node.innerHTML);
-        }
+        //get root element for this scope
+        //try prebuilding this element
+        //if there are structural changes then fully rerender element
+        //reset vars for this element
         resetElement = function(element) {
           var attr, len3, len4, len5, m, n, node, o, ref1, ref2, ref3, results, t;
-          console.log('reset element', element);
           t = 0;
           ref1 = element.$node.childNodes;
           for (m = 0, len3 = ref1.length; m < len3; m++) {
@@ -343,7 +337,6 @@
               node.replaceWith(element.$textNodes[t++] || '');
             }
           }
-          console.log('a bit later on', element);
           ref2 = element.$attributes;
           for (n = 0, len4 = ref2.length; n < len4; n++) {
             attr = ref2[n];
@@ -677,7 +670,6 @@
     };
     render = function(node, parent, scope) {
       var attr, attrComponent, clone, component, element, i, j, len, myscopes, ref, ref1, ref2;
-      console.log('render', node, parent);
       if (!node) {
         return;
       }
