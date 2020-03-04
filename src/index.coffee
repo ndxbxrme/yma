@@ -154,11 +154,9 @@ Yma = (appName) ->
             updatedScopes.splice i, 1
             continue
       index++
-    console.log 'UPDATED SCOPES', updatedScopes
     for updatedScope in updatedScopes
       element = findScopeElement rootElem, updatedScope#could there be more than one?
       changes = checkForChanges element
-      console.log 'CHANGES', changes
       if changes
         doTeardown = (element, skip) ->
           element.$scope.$call('teardown') if not skip
@@ -174,14 +172,11 @@ Yma = (appName) ->
       #try prebuilding this element
       #if there are structural changes then fully rerender element
       #reset vars for this element
-      console.log 'PRE RESET', changes.$node.innerHTML if changes
       resetElement = (element) ->
-        console.log 'reset element', element
         t = 0
         for node in element.$node.childNodes
           if node.nodeType is document.TEXT_NODE
             node.replaceWith element.$textNodes[t++] or ''
-        console.log 'a bit later on', element
         for attr in element.$attributes
           element.$node.setAttribute attr.name, attr.value if element.$node.hasAttributes attr.name
         resetElement child for child in element.$children
@@ -372,7 +367,6 @@ Yma = (appName) ->
     children.push child for child in node.children
     render child, parent for child in children
   render = (node, parent, scope) ->
-    console.log 'render', node, parent
     return if not node
     return if /SCRIPT|STYLE/.test node.tagName
     element =
