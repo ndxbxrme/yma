@@ -296,8 +296,6 @@
         updatedScope = updatedScopes[j];
         element = findScopeElement(rootElem, updatedScope); //could there be more than one?
         changes = checkForChanges(element);
-        console.log('updated scope', updatedScope);
-        console.log('changes', changes);
         if (changes) {
           doTeardown = function(element, skip) {
             var child, k, len1, ref;
