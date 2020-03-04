@@ -296,6 +296,8 @@
         updatedScope = updatedScopes[j];
         element = findScopeElement(rootElem, updatedScope); //could there be more than one?
         changes = checkForChanges(element);
+        console.log('updated scope', updatedScope);
+        console.log('changes', changes);
         if (changes) {
           doTeardown = function(element, skip) {
             var child, k, len1, ref;
@@ -725,6 +727,7 @@
         element.$scope.$hash = hashObject(element.$scope);
         node.innerHTML = component.template ? component.template : element.$html;
         node.innerHTML = node.innerHTML.replace('<children></children>', element.$html);
+        element.$html = node.innerHTML;
       } else {
         //element.$html = node.innerHTML
         node.innerHTML = element.$html;
