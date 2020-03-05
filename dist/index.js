@@ -231,7 +231,7 @@
       return null;
     };
     checkForChanges = function(element) {
-      var attr, attrComponent, child, clone, i, j, k, len, len1, myscopes, ref, ref1, testRoot;
+      var attr, attrComponent, child, clone, i, j, k, l, len, len1, len2, myscopes, ref, ref1, ref2, testRoot;
       //render element html taking into account pre stuff
       testRoot = document.createElement('div');
       testRoot.innerHTML = element.$html;
@@ -267,10 +267,17 @@
               }
               child.parentNode.removeChild(child);
             }
-            child.setAttribute('checkattrs', true);
           }
         }
       }
+      ref2 = testRoot.children;
+      for (i = l = 0, len2 = ref2.length; l < len2; i = ++l) {
+        child = ref2[i];
+        if (child.innerHTML !== element.$children[i].$html) {
+          return element;
+        }
+      }
+      return null;
     };
     updateScopes = function(updatedScopes) {
       var changes, child, children, doTeardown, element, i, index, j, k, l, len, len1, len2, ref, resetElement, updatedScope;

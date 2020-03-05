@@ -139,7 +139,9 @@ Yma = (appName) ->
             if child.children.length isnt element.$children.length
               return element
             child.parentNode.removeChild child
-          child.setAttribute 'checkattrs', true
+    for child, i in testRoot.children
+      return element if child.innerHTML isnt element.$children[i].$html
+    null
   updateScopes = (updatedScopes) ->
     index = 0
     while updatedScopes.length > index + 1
