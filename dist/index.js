@@ -231,7 +231,7 @@
       return null;
     };
     checkForChanges = function(element) {
-      var attr, attrComponent, child, clone, i, j, k, l, len, len1, len2, myscopes, ref, ref1, ref2, testRoot;
+      var attr, attrComponent, child, clone, i, j, k, l, len, len1, len2, myscopes, ref, ref1, ref2, ref3, testRoot;
       //render element html taking into account pre stuff
       testRoot = document.createElement('div');
       testRoot.innerHTML = element.$html;
@@ -273,7 +273,7 @@
       ref2 = testRoot.children;
       for (i = l = 0, len2 = ref2.length; l < len2; i = ++l) {
         child = ref2[i];
-        if (child.innerHTML !== element.$children[i].$html) {
+        if (child.innerHTML !== ((ref3 = element.$children[i]) != null ? ref3.$html : void 0)) {
           return element;
         }
       }

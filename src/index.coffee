@@ -140,7 +140,7 @@ Yma = (appName) ->
               return element
             child.parentNode.removeChild child
     for child, i in testRoot.children
-      return element if child.innerHTML isnt element.$children[i].$html
+      return element if child.innerHTML isnt element.$children[i]?.$html
     null
   updateScopes = (updatedScopes) ->
     index = 0
